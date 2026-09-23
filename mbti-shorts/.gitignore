@@ -1,0 +1,4 @@
+# 連番コマ（1000枚以上・100MB超）は Git に入れない。再生成: node src/render_frames.js
+output/*/frames/
+node_modules/
+*.log

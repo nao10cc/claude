@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>INTJ短編「INTJの友達に失恋相談した結果」</title>
+<style>
+  :root {
+    --purple: #6B4BC9;      /* INTJ / 分析家 */
+    --purple-deep: #2B1A4E;
+    --green: #4FAE6C;       /* ENFP / 外交官 */
+    --cream: #FFF6E8;
+    --ink: #2A2438;
+    --yellow: #FFD84D;
+    --red: #E5484D;
+    --s: 1;
+  }
+  html, body { margin: 0; padding: 0; background: #000; }
+  body { width: 1080px; height: 1920px; overflow: hidden;
+    font-family: "IPAPGothic", "IPAGothic", "WenQuanYi Zen Hei", "Noto Color Emoji", sans-serif; }
+  #stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #2E2650; }
+  #cam { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; transform-origin: 540px 960px; }
+  .abs { position: absolute; }
+  .hide { display: none !important; }
+
+  /* ---------- 部屋 ---------- */
+  #room { position: absolute; inset: 0; }
+  #wall { position: absolute; inset: 0; background: linear-gradient(180deg, #2A2350 0%, #43386F 55%, #4E4380 100%); }
+  #wall::after { content: ""; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.05) 2px, transparent 2px); background-size: 46px 46px; }
+  #floor { position: absolute; left: 0; top: 1080px; width: 1080px; height: 840px;
+    background: linear-gradient(180deg, #5A4A3C 0%, #4A3C31 100%); }
+  #floor::before { content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 2px, transparent 2px 120px); }
+  #rug { position: absolute; left: 60px; top: 1150px; width: 960px; height: 560px; border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 45%, #8F74C8 0%, #7A5FB3 55%, #67509C 100%); box-shadow: inset 0 0 0 18px #5B4690; }
+  #table { position: absolute; left: 150px; top: 1250px; width: 780px; height: 130px; border-radius: 26px;
+    background: linear-gradient(180deg, #D3A977 0%, #B98C5E 100%); box-shadow: 0 22px 0 #8E6A44, 0 40px 30px rgba(0,0,0,.35); }
+  #dim { position: absolute; inset: 0; background: rgba(20,12,40,0); pointer-events: none; }
+
+  /* ---------- キャラ ---------- */
+  .chara { position: absolute; width: 400px; height: 600px; transform-origin: 50% 100%; }
+  .chara svg { width: 100%; height: 100%; overflow: visible; }
+
+  /* ---------- 吹き出し ---------- */
+  .bubble { position: absolute; background: #fff; color: var(--ink); border: 7px solid var(--ink); border-radius: 44px;
+    padding: 26px 40px; font-size: 52px; line-height: 1.28; letter-spacing: .02em; white-space: nowrap;
+    transform-origin: 50% 100%; transform: translate(-50%, -100%) scale(var(--s)); box-shadow: 0 14px 0 rgba(0,0,0,.18); }
+  .bubble::after { content: ""; position: absolute; left: 50%; bottom: -34px; width: 40px; height: 40px; background: #fff;
+    border-right: 7px solid var(--ink); border-bottom: 7px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+  .bubble.tail-left::after { left: 26%; }
+  .bubble.tail-right::after { left: 74%; }
+  .bubble.up { transform-origin: 50% 0; transform: translate(-50%, 0) scale(var(--s)); }
+  .bubble.up::after { top: -34px; bottom: auto; border: none; border-left: 7px solid var(--ink); border-top: 7px solid var(--ink); }
+  .bubble.shout { border-width: 9px; font-size: 62px; border-radius: 16px; letter-spacing: .04em; }
+  .bubble.shout::after { bottom: -36px; }
+  .bubble b { color: var(--purple); }
+  .bubble .em { font-family: "Noto Color Emoji"; }
+
+  .thought { position: absolute; background: #fff; color: var(--ink); border: 6px solid var(--ink); border-radius: 60px;
+    padding: 30px 44px; font-size: 50px; line-height: 1.35; white-space: nowrap; text-align: left; max-width: 900px;
+    transform-origin: 50% 100%; transform: translate(-50%, -100%) scale(var(--s)); }
+  .thought::before, .thought::after { content: ""; position: absolute; background: #fff; border: 6px solid var(--ink); border-radius: 50%; }
+  .thought::before { width: 34px; height: 34px; left: 42%; bottom: -46px; }
+  .thought::after { width: 18px; height: 18px; left: 36%; bottom: -84px; }
+  .thought .q { color: var(--purple); }
+
+  /* ---------- テロップ ---------- */
+  .telop { position: absolute; left: 50%; color: var(--red); border: 8px solid var(--red); border-radius: 14px;
+    padding: 10px 30px; font-size: 56px; letter-spacing: .06em; background: rgba(255,255,255,.92);
+    transform-origin: 50% 50%; transform: translate(-50%, -50%) rotate(-7deg) scale(var(--s)); white-space: nowrap; }
+  .telop.small { font-size: 42px; border-width: 6px; }
+
+  /* ---------- 字幕 ---------- */
+  #subs { position: absolute; left: 50%; top: 1590px; width: 1000px; transform: translateX(-50%);
+    text-align: center; font-size: 66px; line-height: 1.3; color: #fff; letter-spacing: .02em;
+    -webkit-text-stroke: 14px #111; paint-order: stroke fill; text-shadow: 0 6px 0 rgba(0,0,0,.35); }
+  #subs.hana { color: #FFE066; }
+  #subs.ai { color: #D9C8FF; }
+  #subs.mono { color: #fff; font-size: 50px; }
+
+  /* ---------- ホワイトボード ---------- */
+  #board { position: absolute; left: 130px; top: 110px; width: 820px; height: 520px; }
+  #board .panel { position: absolute; inset: 0; background: #FDFDFD; border: 22px solid #B9B9C4; border-radius: 18px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.4); }
+  #board .legs { position: absolute; left: 90px; right: 90px; top: 560px; height: 300px;
+    background: linear-gradient(90deg, transparent 0 40%, #9A9AA6 40% 50%, transparent 50% 50%, #9A9AA6 50% 60%, transparent 60%); display: none; }
+  #board .title { position: absolute; left: 56px; top: 44px; font-size: 54px; color: var(--purple); letter-spacing: .04em;
+    border-bottom: 6px solid var(--purple); padding-bottom: 8px; }
+  #board .item { position: absolute; left: 60px; font-size: 54px; color: #3B2A5A; white-space: nowrap;
+    transform-origin: 0 50%; transform: scale(var(--s)); }
+  #board .item i { font-style: normal; color: var(--purple); }
+  #board .marker { position: absolute; right: 40px; bottom: 22px; width: 130px; height: 24px; border-radius: 12px;
+    background: linear-gradient(90deg, #6B4BC9 0 30%, #23203A 30%); transform: rotate(-12deg); }
+
+  /* ---------- 手帳 ---------- */
+  #notebook { position: absolute; left: 60px; top: 1980px; width: 960px; height: 1360px; }
+  #notebook .cover { position: absolute; inset: 0; background: #3B2A5A; border-radius: 26px; box-shadow: 0 30px 60px rgba(0,0,0,.5); }
+  #notebook .page { position: absolute; left: 40px; top: 60px; right: 40px; bottom: 40px; background: #FFFBF2; border-radius: 12px;
+    background-image: repeating-linear-gradient(180deg, transparent 0 78px, #D9D2E9 78px 81px); background-position: 0 92px; overflow: hidden; }
+  #notebook .margin { position: absolute; left: 92px; top: 0; bottom: 0; width: 4px; background: #F2A7B0; }
+  #notebook .rings { position: absolute; left: 0; right: 0; top: 18px; height: 40px; display: flex; justify-content: space-evenly; }
+  #notebook .rings i { display: block; width: 26px; height: 60px; border-radius: 13px; background: #C9C9D6; border: 5px solid #8E8EA0; }
+  #notebook .tab { position: absolute; right: -8px; top: 140px; background: var(--purple); color: #fff; font-size: 40px; padding: 14px 22px; border-radius: 12px 0 0 12px; }
+  #notebook .line { position: absolute; left: 120px; font-size: 50px; color: #3B2A5A; white-space: nowrap; transform-origin: 0 50%; transform: scale(var(--s)); }
+  #notebook .line.head { color: var(--purple); font-size: 54px; }
+  #notebook .line.head span { background: linear-gradient(transparent 55%, #FFE066 55%); padding: 0 6px; }
+  #notebook .line .box { display: inline-block; width: 44px; height: 44px; border: 5px solid #3B2A5A; border-radius: 8px; vertical-align: -6px; margin-right: 16px; position: relative; background: #fff; }
+  #notebook .line .box.on::after { content: ""; position: absolute; left: 10px; top: -10px; width: 18px; height: 36px; border-right: 8px solid var(--red); border-bottom: 8px solid var(--red); transform: rotate(45deg); }
+  #notebook .line .pct { color: var(--red); }
+  #notebook .caption { position: absolute; left: 50%; top: -110px; transform: translateX(-50%); color: #fff; font-size: 46px; white-space: nowrap;
+    -webkit-text-stroke: 10px #111; paint-order: stroke fill; }
+
+  /* ---------- 小道具 ---------- */
+  .prop { position: absolute; transform-origin: 50% 100%; transform: translate(-50%, -100%) scale(var(--s)); }
+  .prop svg { overflow: visible; display: block; }
+  .prop .label { position: absolute; left: 50%; top: -70px; transform: translateX(-50%); white-space: nowrap; font-size: 40px; color: #fff;
+    background: var(--ink); padding: 6px 20px; border-radius: 30px; }
+
+  /* ---------- タイトル / エンド ---------- */
+  .card { position: absolute; inset: 0; background: linear-gradient(160deg, #2B1A4E 0%, #4A2C7A 60%, #6B4BC9 100%); }
+  .card::after { content: ""; position: absolute; inset: 0;
+    background: repeating-linear-gradient(135deg, rgba(255,255,255,.04) 0 40px, transparent 40px 80px); }
+  .badge { position: absolute; left: 50%; transform: translate(-50%, -50%) scale(var(--s)); transform-origin: 50% 50%;
+    background: #fff; color: var(--purple); font-size: 58px; letter-spacing: .12em; padding: 14px 54px; border-radius: 60px; white-space: nowrap; }
+  .badge.green { color: var(--green); }
+  .tline { position: absolute; left: 50%; width: 1000px; text-align: center; color: #fff; white-space: nowrap;
+    transform: translate(-50%, -50%) scale(var(--s)); transform-origin: 50% 50%; -webkit-text-stroke: 10px var(--purple-deep); paint-order: stroke fill; }
+  .tline.big { font-size: 128px; letter-spacing: .02em; }
+  .tline.mid { font-size: 96px; }
+  .tline.sm { font-size: 60px; -webkit-text-stroke: 8px var(--purple-deep); }
+  .tline.yellow { color: var(--yellow); }
+  .underline { position: absolute; left: 50%; height: 26px; background: var(--yellow); border-radius: 13px; transform: translateX(-50%); transform-origin: 0 50%; }
+
+  /* ---------- 決めゼリフ ---------- */
+  #wash { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(107,75,201,.55), rgba(43,26,78,.85)); }
+  .punch { position: absolute; left: 50%; width: 1020px; text-align: center; color: #fff; white-space: nowrap;
+    transform: translate(-50%, -50%) scale(var(--s)); transform-origin: 50% 50%;
+    -webkit-text-stroke: 14px #1B1230; paint-order: stroke fill; }
+  .punch.l1 { font-size: 84px; }
+  .punch.l2 { font-size: 64px; color: var(--yellow); }
+
+  #vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,.35) 100%); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cam">
+    <!-- 部屋 -->
+    <div id="room">
+      <div id="wall"></div>
+      <svg id="decor" class="abs" style="left:0;top:0" width="1080" height="1200" viewBox="0 0 1080 1200">
+        <!-- 窓 -->
+        <rect x="300" y="230" width="480" height="420" rx="18" fill="#F3E9D6"/>
+        <rect x="322" y="252" width="436" height="376" rx="10" fill="#151A3A"/>
+        <circle cx="660" cy="330" r="46" fill="#FFF1B8"/>
+        <circle cx="642" cy="318" r="40" fill="#151A3A" opacity=".0"/>
+        <g fill="#0E1230">
+          <rect x="330" y="520" width="60" height="108"/><rect x="400" y="470" width="50" height="158"/><rect x="460" y="540" width="70" height="88"/>
+          <rect x="540" y="500" width="40" height="128"/><rect x="590" y="450" width="60" height="178"/><rect x="660" y="530" width="50" height="98"/><rect x="720" y="490" width="38" height="138"/>
+        </g>
+        <g fill="#FFE9A0" opacity=".9">
+          <rect x="342" y="540" width="10" height="10"/><rect x="412" y="500" width="10" height="10"/><rect x="600" y="470" width="10" height="10"/><rect x="616" y="520" width="10" height="10"/><rect x="730" y="520" width="8" height="8"/>
+        </g>
+        <rect x="536" y="252" width="8" height="376" fill="#F3E9D6"/>
+        <rect x="322" y="436" width="436" height="8" fill="#F3E9D6"/>
+        <!-- 本棚 (左) -->
+        <rect x="40" y="520" width="200" height="560" rx="12" fill="#3B2F2A"/>
+        <g>
+          <rect x="60" y="560" width="30" height="130" fill="#6B4BC9"/><rect x="95" y="570" width="26" height="120" fill="#E5484D"/><rect x="126" y="555" width="34" height="135" fill="#4FAE6C"/><rect x="165" y="575" width="28" height="115" fill="#FFD84D"/>
+          <rect x="60" y="720" width="34" height="140" fill="#3E7FC1"/><rect x="100" y="730" width="26" height="130" fill="#F3E9D6"/><rect x="132" y="710" width="30" height="150" fill="#E67E22"/><rect x="170" y="740" width="30" height="120" fill="#8F74C8"/>
+          <rect x="60" y="900" width="150" height="150" rx="10" fill="#2B2A44"/><rect x="80" y="920" width="110" height="80" fill="#5C4E8A"/>
+        </g>
+        <rect x="40" y="690" width="200" height="14" fill="#2A211E"/><rect x="40" y="860" width="200" height="14" fill="#2A211E"/>
+        <!-- 観葉植物 (右) -->
+        <rect x="900" y="900" width="120" height="120" rx="14" fill="#B98C5E"/>
+        <g fill="#4FAE6C">
+          <ellipse cx="960" cy="800" rx="40" ry="110" transform="rotate(-10 960 800)"/>
+          <ellipse cx="920" cy="820" rx="36" ry="100" transform="rotate(-38 920 820)"/>
+          <ellipse cx="1000" cy="820" rx="36" ry="100" transform="rotate(30 1000 820)"/>
+        </g>
+        <!-- 壁のポスター -->
+        <rect x="860" y="300" width="160" height="210" rx="8" fill="#F3E9D6"/>
+        <rect x="878" y="318" width="124" height="174" fill="#6B4BC9"/>
+        <text x="940" y="420" text-anchor="middle" font-size="60" fill="#fff" font-family="IPAPGothic">思</text>
+      </svg>
+      <div id="floor"></div>
+      <div id="rug"></div>
+    </div>
+
+    <!-- キャラ -->
+    <div id="hana" class="chara"></div>
+    <div id="ai" class="chara"></div>
+
+    <div id="table"></div>
+    <div id="dim"></div>
+
+    <!-- ホワイトボード -->
+    <div id="board" class="hide">
+      <div class="panel"></div>
+      <div class="title">失恋の原因分析</div>
+      <div class="item" id="b1"><i>①</i> 連絡頻度の非対称</div>
+      <div class="item" id="b2"><i>②</i> 価値観のズレ</div>
+      <div class="item" id="b3"><i>③</i> タイミング</div>
+      <div class="marker"></div>
+    </div>
+
+    <!-- 小道具 -->
+    <div id="pudding" class="prop hide">
+      <div class="label">プリン</div>
+      <svg width="150" height="140" viewBox="0 0 150 140">
+        <path d="M20 40 h110 l-14 80 q-2 14 -16 14 h-50 q-14 0 -16 -14 z" fill="#F7B54A"/>
+        <path d="M20 40 h110 l-6 34 h-98 z" fill="#8A4B1F"/>
+        <ellipse cx="75" cy="40" rx="55" ry="14" fill="#A85B26"/>
+        <ellipse cx="75" cy="36" rx="30" ry="12" fill="#fff"/>
+        <circle cx="75" cy="26" r="12" fill="#E5484D"/>
+        <path d="M10 130 h130" stroke="#F3E9D6" stroke-width="10" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div id="tissue" class="prop hide">
+      <div class="label">ティッシュ</div>
+      <svg width="190" height="130" viewBox="0 0 190 130">
+        <rect x="10" y="40" width="170" height="86" rx="12" fill="#7FC4E9"/>
+        <rect x="10" y="40" width="170" height="26" rx="12" fill="#5FA8D2"/>
+        <path d="M70 46 q25 -40 50 0 q-20 -14 -50 0z" fill="#fff"/>
+        <path d="M80 44 q10 -26 40 -10 q-20 6 -40 10z" fill="#EEF7FF"/>
+        <rect x="30" y="80" width="130" height="30" rx="8" fill="#fff" opacity=".7"/>
+      </svg>
+    </div>
+    <div id="cocoa" class="prop hide">
+      <div class="label">ホットココア</div>
+      <svg width="150" height="150" viewBox="0 0 150 150">
+        <g id="steam" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".8">
+          <path d="M55 10 q-14 18 0 36 q14 18 0 36"/><path d="M85 4 q-14 18 0 36 q14 18 0 36"/>
+        </g>
+        <rect x="30" y="56" width="90" height="86" rx="14" fill="#E5484D"/>
+        <path d="M120 74 q34 4 24 34 q-6 22 -26 22" fill="none" stroke="#E5484D" stroke-width="14"/>
+        <ellipse cx="75" cy="60" rx="45" ry="12" fill="#6B3E1E"/>
+        <ellipse cx="72" cy="58" rx="18" ry="6" fill="#fff" opacity=".85"/>
+      </svg>
+    </div>
+    <div id="bag" class="prop hide">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <path d="M30 60 h140 l14 130 q0 10 -10 10 h-148 q-10 0 -10 -10 z" fill="#F3E9D6"/>
+        <path d="M70 60 q0 -50 30 -50 q30 0 30 50" fill="none" stroke="#6B4BC9" stroke-width="10"/>
+        <rect x="60" y="100" width="80" height="60" fill="#6B4BC9" opacity=".2"/>
+      </svg>
+    </div>
+
+    <!-- 吹き出し -->
+    <div id="bub_hana1" class="bubble tail-left hide"><span class="t"></span><span class="em"> 😭</span></div>
+    <div id="bub_ai1" class="bubble tail-right hide">そうか。</div>
+    <div id="bub_ai2" class="bubble up hide">原因は<b>3つ</b>に分類できる</div>
+    <div id="bub_hana2" class="bubble shout tail-left hide">分析しないでぇぇ！！</div>
+    <div id="bub_ai3" class="bubble tail-right hide">…食べろ。</div>
+    <div id="bub_hana3" class="bubble tail-left hide">え</div>
+    <div id="bub_hana4" class="bubble tail-left hide">……3日前から？</div>
+    <div id="bub_ai4" class="bubble tail-right hide">…顔に出てた。</div>
+
+
+    <div id="tl1" class="telop hide">INTJ：無表情</div>
+    <div id="tl2" class="telop small hide">※本人は励ましている</div>
+    <div id="tl3" class="telop small hide">言い方。</div>
+
+    <!-- 手帳 -->
+    <div id="notebook" class="hide">
+      <div class="caption">アイの手帳（ハナが偶然見た）</div>
+      <div class="cover"></div>
+      <div class="page">
+        <div class="margin"></div>
+        <div class="line head" id="n1" style="top:110px"><span>9/20（3日前）</span></div>
+        <div class="line" id="n2" style="top:200px">ハナの様子が変。</div>
+        <div class="line" id="n3" style="top:280px">彼と揉めてる可能性 <span class="pct">85%</span></div>
+        <div class="line head" id="n4" style="top:430px"><span>9/23 失恋時対応プラン</span></div>
+        <div class="line" id="n5" style="top:530px"><span class="box"></span>21:00 プリン確保（推し店）</div>
+        <div class="line" id="n6" style="top:620px"><span class="box"></span>共感フェーズ 20分</div>
+        <div class="line" id="n7" style="top:710px"><span class="box"></span>解決策は本人が求めた時のみ</div>
+        <div class="line" id="n8" style="top:800px"><span class="box"></span>帰りは家まで送る</div>
+        <div class="line" id="n9" style="top:930px; color:#8E8EA0; font-size:40px">※ 泣いたら分析しない。絶対に。</div>
+      </div>
+      <div class="rings"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="tab">9月</div>
+    </div>
+  </div>
+
+  <!-- 思考バブル（カメラの外） -->
+  <div id="th1" class="thought hide"><span class="t"></span></div>
+  <div id="th2" class="thought hide"><span class="t"></span></div>
+  <div id="th3" class="thought hide">（感情の処理が<br>追いつかない）</div>
+
+  <!-- 決めゼリフ -->
+  <div id="wash" class="hide"></div>
+  <div id="p1" class="punch l1 hide">INTJは冷たいんじゃない。</div>
+  <div id="p2" class="punch l2 hide">心配を"計画"に変換してるだけ。</div>
+
+  <!-- 字幕 -->
+  <div id="subs"></div>
+
+  <!-- タイトル -->
+  <div id="title" class="card">
+    <div id="t_badge" class="badge" style="top:640px">INTJ ｜ 建築家</div>
+    <div id="t_l1" class="tline mid" style="top:820px">INTJの友達に</div>
+    <div id="t_l2" class="tline big yellow" style="top:980px">失恋相談した結果</div>
+    <div id="t_ul" class="underline" style="top:1070px;width:0"></div>
+    <div id="t_l3" class="tline sm" style="top:1240px; color:#D9C8FF">#MBTIショートドラマ</div>
+  </div>
+
+  <!-- エンドカード -->
+  <div id="end" class="card hide">
+    <div id="e_badge" class="badge" style="top:560px">#INTJあるある</div>
+    <div id="e_l1" class="tline mid" style="top:760px">共感したら</div>
+    <div id="e_l2" class="tline mid yellow" style="top:890px">コメントで自分のMBTIを</div>
+    <div id="e_l3" class="tline mid yellow" style="top:1010px">教えて</div>
+    <div id="e_l4" class="tline sm" style="top:1240px; color:#D9C8FF">次回</div>
+    <div id="e_badge2" class="badge green" style="top:1340px">ENFP ｜ 運動家</div>
+    <div id="e_l5" class="tline sm" style="top:1450px">の失恋</div>
+    <div id="e_l6" class="tline sm" style="top:1660px; color:#D9C8FF">保存して次回を待つ ▶</div>
+  </div>
+
+  <div id="vignette"></div>
+</div>
+
+<script>
+// ===================== ユーティリティ =====================
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const E = {
+  lin: u => u,
+  outCubic: u => 1 - Math.pow(1 - u, 3),
+  inOutCubic: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  outBack: u => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  outBounce: u => { const n1 = 7.5625, d1 = 2.75; if (u < 1 / d1) return n1 * u * u; if (u < 2 / d1) return n1 * (u -= 1.5 / d1) * u + .75; if (u < 2.5 / d1) return n1 * (u -= 2.25 / d1) * u + .9375; return n1 * (u -= 2.625 / d1) * u + .984375; },
+};
+function tw(t, t0, t1, a, b, e = E.outCubic) { return lerp(a, b, e(clamp((t - t0) / (t1 - t0), 0, 1))); }
+function show(el, on) { el.classList.toggle('hide', !on); }
+// ポップ表示。t0 以降 d 秒で outBack 拡大。範囲外は非表示。
+function pop(el, t, t0, d = .35, t1 = Infinity) {
+  if (t < t0 || t >= t1) { show(el, false); return false; }
+  show(el, true);
+  const u = clamp((t - t0) / d, 0, 1);
+  el.style.setProperty('--s', E.outBack(u).toFixed(4));
+  el.style.opacity = clamp(u * 4, 0, 1);
+  return true;
+}
+function typeInto(el, full, t, t0, cps = 16) {
+  const n = t < t0 ? 0 : Math.min(full.length, Math.floor((t - t0) * cps));
+  el.textContent = full.slice(0, n);
+}
+function place(el, x, y) { el.style.left = x + 'px'; el.style.top = y + 'px'; }
+const blinkAt = (t, off = 0, period = 3.3) => { const ph = (t + off) % period; return ph < .16 ? Math.sin(ph / .16 * Math.PI) : 0; };
+const talkOpen = t => Math.sin(t * Math.PI * 2 * 5) > 0.1;
+
+// ===================== キャラ SVG =====================
+const SKIN = '#F6DDC8', INK = '#2B2436';
+function intjSVG(s) {
+  // s: {blink, mouth:'closed'|'talk'|'open', eyes:'neutral'|'away'|'dot'|'wide', blush, glint, sweat, armR, armL, dots}
+  const ry = s.eyes === 'wide' ? 15 : 7 * (1 - s.blink) + 1;
+  const dx = s.eyes === 'away' ? 14 : 0;
+  const eyes = s.eyes === 'dot'
+    ? `<circle cx="152" cy="212" r="5" fill="${INK}"/><circle cx="248" cy="212" r="5" fill="${INK}"/>`
+    : `<ellipse cx="${152 + dx}" cy="212" rx="17" ry="${ry.toFixed(2)}" fill="${INK}"/><ellipse cx="${248 + dx}" cy="212" rx="17" ry="${ry.toFixed(2)}" fill="${INK}"/>`;
+  let mouth = `<path d="M188 264 h24" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>`;
+  if (s.mouth === 'talk') mouth = `<ellipse cx="200" cy="266" rx="11" ry="8" fill="#7A3B3B"/>`;
+  if (s.mouth === 'open') mouth = `<ellipse cx="200" cy="268" rx="9" ry="12" fill="#7A3B3B"/>`;
+  const blush = s.blush ? `<ellipse cx="128" cy="252" rx="22" ry="11" fill="#F29AA0" opacity=".65"/><ellipse cx="272" cy="252" rx="22" ry="11" fill="#F29AA0" opacity=".65"/>` : '';
+  const glint = s.glint ? `<g opacity="${s.glint}"><rect x="128" y="188" width="14" height="46" fill="#fff" transform="rotate(25 135 211)"/><rect x="226" y="188" width="14" height="46" fill="#fff" transform="rotate(25 233 211)"/></g>` : '';
+  const sweat = s.sweat ? `<path d="M310 150 q-18 30 0 44 q18 -14 0 -44z" fill="#8FD3FF" stroke="${INK}" stroke-width="3"/>` : '';
+  const dots = s.dots ? `<g fill="${INK}"><circle cx="330" cy="70" r="7"/><circle cx="356" cy="64" r="7"/><circle cx="382" cy="58" r="7"/></g>` : '';
+  const armR = s.armR ?? 0, armL = s.armL ?? 0;
+  return `<svg viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+    <!-- 後ろ髪 -->
+    <ellipse cx="200" cy="200" rx="132" ry="142" fill="#3A2B5C"/>
+    <rect x="72" y="200" width="46" height="240" rx="20" fill="#3A2B5C"/>
+    <rect x="282" y="200" width="46" height="240" rx="20" fill="#3A2B5C"/>
+    <!-- 左腕(奥) -->
+    <g transform="rotate(${armL} 130 352)"><rect x="108" y="336" width="44" height="190" rx="22" fill="#1F1B2E"/><circle cx="130" cy="526" r="23" fill="${SKIN}"/></g>
+    <!-- 体 -->
+    <path d="M100 600 V420 Q100 330 190 330 H210 Q300 330 300 420 V600 Z" fill="#1F1B2E"/>
+    <rect x="176" y="270" width="48" height="70" fill="${SKIN}"/>
+    <rect x="156" y="296" width="88" height="50" rx="14" fill="#1F1B2E"/>
+    <!-- 顔 -->
+    <ellipse cx="200" cy="196" rx="118" ry="128" fill="${SKIN}"/>
+    <path d="M82 200 C82 6 318 6 318 200 L318 150 L82 150 Z" fill="#3A2B5C"/>
+    <polygon points="118,150 138,182 158,150" fill="#3A2B5C"/><polygon points="184,150 200,190 216,150" fill="#3A2B5C"/><polygon points="242,150 260,180 278,150" fill="#3A2B5C"/>
+    ${blush}
+    <!-- 眉 -->
+    <path d="M128 186 l44 6" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M272 186 l-44 6" stroke="${INK}" stroke-width="6" stroke-linecap="round"/>
+    ${eyes}
+    <!-- 眼鏡 -->
+    <rect x="118" y="186" width="66" height="50" rx="12" fill="#fff" fill-opacity=".14" stroke="${INK}" stroke-width="6"/>
+    <rect x="216" y="186" width="66" height="50" rx="12" fill="#fff" fill-opacity=".14" stroke="${INK}" stroke-width="6"/>
+    <path d="M184 208 h32" stroke="${INK}" stroke-width="6"/>
+    ${glint}
+    ${mouth}
+    ${sweat}${dots}
+    <!-- 右腕(手前) -->
+    <g transform="rotate(${armR} 270 352)"><rect x="248" y="336" width="44" height="190" rx="22" fill="#1F1B2E"/><circle cx="270" cy="526" r="23" fill="${SKIN}"/></g>
+  </svg>`;
+}
+
+function enfpSVG(s, t) {
+  // s: {blink, mouth:'wobble'|'shout'|'o'|'smile'|'closed', eyes:'normal'|'cry'|'wide'|'happy', tears, burst, armR, armL}
+  const HAIR = '#E9894A';
+  let eyes;
+  if (s.eyes === 'cry' || s.eyes === 'happy') {
+    eyes = `<path d="M130 220 Q152 194 174 220" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M226 220 Q248 194 270 220" stroke="${INK}" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  } else {
+    const r = s.eyes === 'wide' ? 24 : 19;
+    const ry = r * (1 - s.blink) + 1;
+    eyes = `<ellipse cx="150" cy="214" rx="${r}" ry="${ry.toFixed(2)}" fill="#3A2A1E"/><ellipse cx="250" cy="214" rx="${r}" ry="${ry.toFixed(2)}" fill="#3A2A1E"/>` +
+      (s.blink < .5 ? `<circle cx="158" cy="206" r="6" fill="#fff"/><circle cx="258" cy="206" r="6" fill="#fff"/>` : '');
+  }
+  const brows = s.eyes === 'cry'
+    ? `<path d="M124 178 l44 -12" stroke="${INK}" stroke-width="6" stroke-linecap="round"/><path d="M276 178 l-44 -12" stroke="${INK}" stroke-width="6" stroke-linecap="round"/>`
+    : `<path d="M126 176 q24 -12 48 0" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/><path d="M226 176 q24 -12 48 0" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  let mouth = `<path d="M186 266 h28" stroke="${INK}" stroke-width="5" stroke-linecap="round"/>`;
+  if (s.mouth === 'wobble') mouth = `<path d="M170 268 q8 -10 16 0 t16 0 t16 0 t16 0" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  if (s.mouth === 'shout') mouth = `<ellipse cx="200" cy="274" rx="26" ry="22" fill="#5A1F26"/><ellipse cx="200" cy="286" rx="14" ry="8" fill="#E5484D"/>`;
+  if (s.mouth === 'o') mouth = `<circle cx="200" cy="270" r="9" fill="#5A1F26"/>`;
+  if (s.mouth === 'smile') mouth = `<path d="M176 262 Q200 290 224 262" stroke="${INK}" stroke-width="6" fill="none" stroke-linecap="round"/>`;
+  // 涙
+  let tears = '';
+  if (s.tears) {
+    tears += `<rect x="128" y="226" width="14" height="70" rx="7" fill="#8FD3FF" opacity=".75"/><rect x="258" y="226" width="14" height="70" rx="7" fill="#8FD3FF" opacity=".75"/>`;
+    for (let i = 0; i < 3; i++) {
+      const ph = ((t * 1.3 + i * .37) % 1);
+      const y = 240 + ph * 230, a = (1 - ph) * .9;
+      tears += `<path d="M${135 - ph * 10} ${y} q-10 16 0 26 q10 -10 0 -26z" fill="#8FD3FF" opacity="${a.toFixed(2)}"/>`;
+      tears += `<path d="M${265 + ph * 10} ${y + 30} q-10 16 0 26 q10 -10 0 -26z" fill="#8FD3FF" opacity="${a.toFixed(2)}"/>`;
+    }
+  }
+  if (s.burst > 0) {
+    const b = s.burst; // 0..1
+    for (let i = 0; i < 6; i++) {
+      const ang = -0.9 + i * 0.36, d = 40 + b * 150;
+      const x1 = 150 + Math.cos(Math.PI + ang) * d, y1 = 214 + Math.sin(ang) * d * .6;
+      const x2 = 250 + Math.cos(ang) * d, y2 = 214 + Math.sin(ang) * d * .6;
+      tears += `<circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="${(9 - b * 6).toFixed(1)}" fill="#8FD3FF" opacity="${(1 - b).toFixed(2)}"/><circle cx="${x2.toFixed(1)}" cy="${y2.toFixed(1)}" r="${(9 - b * 6).toFixed(1)}" fill="#8FD3FF" opacity="${(1 - b).toFixed(2)}"/>`;
+    }
+  }
+  const armR = s.armR ?? 0, armL = s.armL ?? 0;
+  return `<svg viewBox="0 0 400 600" xmlns="http://www.w3.org/2000/svg">
+    <!-- ツインテール -->
+    <ellipse cx="62" cy="290" rx="44" ry="120" fill="${HAIR}" transform="rotate(8 62 290)"/>
+    <ellipse cx="338" cy="290" rx="44" ry="120" fill="${HAIR}" transform="rotate(-8 338 290)"/>
+    <ellipse cx="200" cy="196" rx="134" ry="140" fill="${HAIR}"/>
+    <g transform="rotate(${armL} 130 352)"><rect x="108" y="336" width="44" height="190" rx="22" fill="#6CBF7A"/><circle cx="130" cy="526" r="23" fill="${SKIN}"/></g>
+    <!-- 体 -->
+    <path d="M100 600 V420 Q100 330 190 330 H210 Q300 330 300 420 V600 Z" fill="#6CBF7A"/>
+    <polygon points="168,332 232,332 200,410" fill="#FFF4E0"/>
+    <rect x="176" y="270" width="48" height="70" fill="${SKIN}"/>
+    <!-- 顔 -->
+    <ellipse cx="200" cy="196" rx="118" ry="128" fill="${SKIN}"/>
+    <path d="M82 200 C82 6 318 6 318 200 L318 160 L82 160 Z" fill="${HAIR}"/>
+    <g fill="${HAIR}"><circle cx="106" cy="162" r="26"/><circle cx="150" cy="166" r="28"/><circle cx="196" cy="162" r="28"/><circle cx="242" cy="166" r="28"/><circle cx="290" cy="162" r="26"/></g>
+    <polygon points="296,104 306,126 330,128 312,144 318,168 296,156 274,168 280,144 262,128 286,126" fill="#FFD84D"/>
+    <ellipse cx="128" cy="250" rx="22" ry="11" fill="#F29AA0" opacity=".55"/><ellipse cx="272" cy="250" rx="22" ry="11" fill="#F29AA0" opacity=".55"/>
+    ${brows}${eyes}${mouth}${tears}
+    <g transform="rotate(${armR} 270 352)"><rect x="248" y="336" width="44" height="190" rx="22" fill="#6CBF7A"/><circle cx="270" cy="526" r="23" fill="${SKIN}"/></g>
+  </svg>`;
+}
+
+// ===================== 字幕 =====================
+const SUBS = [
+  { from: 3.0, to: 6.0, who: 'hana', text: '彼に…振られた…' },
+  { from: 6.0, to: 8.5, who: 'ai', text: 'そうか。' },
+  { from: 9.0, to: 12.6, who: 'ai', text: '原因は3つに分類できる' },
+  { from: 12.8, to: 15.5, who: 'hana', text: '分析しないでぇぇ！！' },
+  { from: 15.8, to: 17.0, who: 'mono', text: '（…なるほど）' },
+  { from: 17.0, to: 18.8, who: 'mono', text: '（今は"解決"ではなく"共感"フェーズか）' },
+  { from: 18.9, to: 21.5, who: 'mono', text: '（共感……どうやるんだっけ）' },
+  { from: 24.5, to: 26.0, who: 'ai', text: '…食べろ。' },
+  { from: 26.0, to: 27.5, who: 'hana', text: 'え' },
+  { from: 34.2, to: 35.6, who: 'hana', text: '……3日前から？' },
+  { from: 35.6, to: 37.0, who: 'ai', text: '…顔に出てた。' },
+  { from: 37.9, to: 39.6, who: 'mono', text: '（感情の処理が追いつかない）' },
+];
+function drawSubs(T) {
+  const el = $('subs');
+  const s = SUBS.find(x => T >= x.from && T < x.to);
+  el.className = s ? s.who : '';
+  el.textContent = s ? s.text : '';
+  el.style.display = s ? '' : 'none';
+}
+
+// ===================== シーン =====================
+const SHOTS = [
+  { name: 'title', start: 0, end: 2.6 },
+  { name: 's1', start: 2.6, end: 8.5 },
+  { name: 's2', start: 8.5, end: 15.5 },
+  { name: 's3', start: 15.5, end: 21.5 },
+  { name: 's4', start: 21.5, end: 27.5 },
+  { name: 's5', start: 27.5, end: 37.0 },
+  { name: 's6', start: 37.0, end: 43.0 },
+  { name: 'end', start: 43.0, end: 48.0 },
+];
+window.DURATION = 48.0;
+
+const HANA = { x: 330, y: 1350, scale: 1.16 };   // 足元基準
+const AI = { x: 760, y: 1350, scale: 1.16 };
+
+function setChara(el, base, dx, dy, bob, flip = false) {
+  el.style.left = (base.x - 200 + dx) + 'px';
+  el.style.top = (base.y - 600 + dy + bob) + 'px';
+  el.style.transform = `scale(${flip ? -base.scale : base.scale}, ${base.scale})`;
+}
+
+const ALL_BUBBLES = ['bub_hana1', 'bub_ai1', 'bub_ai2', 'bub_hana2', 'bub_ai3', 'bub_hana3', 'bub_hana4', 'bub_ai4', 'th1', 'th2', 'th3', 'tl1', 'tl2', 'tl3',
+  'board', 'pudding', 'tissue', 'cocoa', 'bag', 'notebook', 'wash', 'p1', 'p2', 'title', 'end'];
+
+function resetAll() {
+  ALL_BUBBLES.forEach(id => show($(id), false));
+  $('cam').style.transform = '';
+  $('dim').style.background = 'rgba(20,12,40,0)';
+  $('room').style.display = '';
+  $('hana').style.display = ''; $('hana').style.zIndex = '';
+  $('ai').style.display = ''; $('ai').style.zIndex = '';
+  $('table').style.display = '';
+  $('stage').style.transform = '';
+}
+
+function cam(scale, cx, cy) {
+  // (cx, cy) をズーム中心に
+  $('cam').style.transformOrigin = `${cx}px ${cy}px`;
+  $('cam').style.transform = `scale(${scale})`;
+}
+function shake(t, t0, t1, amp = 18) {
+  if (t < t0 || t > t1) return;
+  const u = 1 - (t - t0) / (t1 - t0);
+  const dx = Math.sin(t * 90) * amp * u, dy = Math.cos(t * 73) * amp * .6 * u;
+  $('stage').style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px)`;
+}
+
+// ---- タイトル ----
+function shotTitle(t) {
+  show($('title'), true);
+  pop($('t_badge'), t, .1, .4);
+  pop($('t_l1'), t, .35, .4);
+  pop($('t_l2'), t, .8, .45);
+  const ul = $('t_ul');
+  ul.style.width = tw(t, 1.15, 1.6, 0, 880) + 'px';
+  show(ul, t >= 1.15);
+  pop($('t_l3'), t, 1.5, .4);
+  const s = tw(t, 2.1, 2.6, 1, 1.08, E.inOutCubic);
+  $('title').style.transform = `scale(${s})`;
+  $('title').style.opacity = tw(t, 2.3, 2.6, 1, 0, E.lin);
+}
+
+// ---- 1: 相談 ----
+function shot1(t, T) {
+  const bobH = Math.sin(T * 2 * Math.PI * .9) * 5;
+  const bobA = Math.sin(T * 2 * Math.PI * .45) * 3;
+  const hanaTalk = t >= .4 && t < 2.4;
+  const aiTalk = t >= 3.4 && t < 3.9;
+  $('hana').innerHTML = enfpSVG({ blink: 0, mouth: 'wobble', eyes: 'cry', tears: true, armL: 30, armR: -30 }, T);
+  $('ai').innerHTML = intjSVG({ blink: blinkAt(T, .7), mouth: aiTalk && talkOpen(T) ? 'talk' : 'closed', eyes: 'neutral' });
+  setChara($('hana'), HANA, 0, 0, bobH + Math.abs(Math.sin(T * 14)) * -6);
+  setChara($('ai'), AI, 0, 0, bobA);
+  // 吹き出し
+  const b1 = $('bub_hana1'); place(b1, 420, 560);
+  if (pop(b1, t, .4, .4, 3.3)) typeInto(b1.querySelector('.t'), '彼に…振られた…', t, .55, 9);
+  const b2 = $('bub_ai1'); place(b2, 700, 560); pop(b2, t, 3.4, .35);
+  const tl = $('tl1'); tl.style.top = '300px'; pop(tl, t, 4.4, .3);
+  // 入り: 軽いズームアウト
+  cam(tw(t, 0, .8, 1.06, 1), 540, 1100);
+}
+
+// ---- 2: 分析 ----
+function shot2(t, T) {
+  const bobH = Math.sin(T * 2 * Math.PI * .9) * 5;
+  const bobA = Math.sin(T * 2 * Math.PI * .45) * 3;
+  const shout = t >= 4.3 && t < 6.2;
+  const aiTalk = t >= .5 && t < 2.2;
+  const hanaState = shout
+    ? { blink: 0, mouth: 'shout', eyes: 'cry', tears: true, burst: clamp((t - 4.3) / .6, 0, 1), armL: 60, armR: -60 }
+    : { blink: 0, mouth: 'wobble', eyes: 'cry', tears: true, armL: 30, armR: -30 };
+  $('hana').innerHTML = enfpSVG(hanaState, T);
+  // アイはボード横へ移動して指す
+  const aiDx = tw(t, 0, .6, 0, 40), armL = tw(t, .1, .6, 0, 140);
+  $('ai').innerHTML = intjSVG({ blink: blinkAt(T, .7), mouth: aiTalk && talkOpen(T) ? 'talk' : 'closed', eyes: 'neutral', armL });
+  setChara($('hana'), HANA, shout ? -20 : 0, 0, bobH + (shout ? Math.sin(T * 60) * 6 : 0));
+  setChara($('ai'), AI, aiDx, 0, bobA);
+  // ボード降下
+  const board = $('board'); show(board, true);
+  board.style.top = tw(t, 0, .6, -650, 110, E.outBack) + 'px';
+  const items = ['b1', 'b2', 'b3'], t0s = [1.6, 2.4, 3.2];
+  items.forEach((id, i) => { const el = $(id); el.style.top = (150 + i * 110) + 'px'; pop(el, t, t0s[i], .3); });
+  const b = $('bub_ai2'); place(b, 700, 1085); pop(b, t, .5, .35, 4.2);
+  const h = $('bub_hana2'); place(h, 400, 720); h.classList.toggle('tail-left', true);
+  if (pop(h, t, 4.3, .25)) { const j = Math.sin(t * 50) * 2.5; h.style.transform = `translate(-50%,-100%) rotate(${j}deg) scale(var(--s))`; }
+  shake(t, 4.3, 5.1, 22);
+  const tl = $('tl2'); tl.style.top = '1180px'; tl.style.left = '780px'; pop(tl, t, 5.4, .3);
+}
+
+// ---- 3: 内心 ----
+function shot3(t, T) {
+  const bobA = Math.sin(T * 2 * Math.PI * .45) * 3;
+  $('hana').innerHTML = enfpSVG({ blink: 0, mouth: 'wobble', eyes: 'cry', tears: true, armL: 30, armR: -30 }, T);
+  const glint = t >= .3 && t < 1.1 ? Math.sin((t - .3) / .8 * Math.PI) : 0;
+  const bl = blinkAt(T, .7) || (t >= 4.0 && t < 4.16 ? Math.sin((t - 4) / .16 * Math.PI) : 0);
+  $('ai').innerHTML = intjSVG({ blink: bl, mouth: 'closed', eyes: t >= 3.4 ? 'away' : 'neutral', glint, sweat: t >= 4.2 });
+  setChara($('hana'), HANA, 0, 0, 0);
+  setChara($('ai'), AI, 0, 0, bobA);
+  // アイの顔へズーム
+  cam(tw(t, 0, .8, 1.0, 1.75, E.inOutCubic), 760, 1000);
+  $('dim').style.background = `rgba(20,12,40,${tw(t, 0, .8, 0, .35).toFixed(3)})`;
+  const th1 = $('th1'); place(th1, 540, 620);
+  if (pop(th1, t, .3, .4, 3.3)) {
+    const el = th1.querySelector('.t');
+    const a = '…なるほど。', b = '今は"解決"ではなく"共感"フェーズか。';
+    if (t < 1.1) typeInto(el, a, t, .4, 12);
+    else { const n = Math.min(b.length, Math.floor((t - 1.1) * 16)); el.innerHTML = a + '<br>' + b.slice(0, n).replace('"共感"', '<span class="q">"共感"</span>'); }
+  }
+  const th2 = $('th2'); place(th2, 540, 620);
+  if (pop(th2, t, 3.4, .4)) typeInto(th2.querySelector('.t'), '共感……どうやるんだっけ', t, 3.5, 12);
+}
+
+// ---- 4: 差し入れ ----
+function shot4(t, T) {
+  const bobH = Math.sin(T * 2 * Math.PI * .9) * 4;
+  const bobA = Math.sin(T * 2 * Math.PI * .45) * 3;
+  const surprised = t >= 4.2;
+  const aiTalk = t >= 3.0 && t < 3.6;
+  const hanaState = surprised
+    ? { blink: blinkAt(T, 1.2), mouth: 'o', eyes: 'wide', tears: false, armL: 10, armR: -10 }
+    : { blink: 0, mouth: 'wobble', eyes: 'cry', tears: t < 3.5, armL: 30, armR: -30 };
+  $('hana').innerHTML = enfpSVG(hanaState, T);
+  const armL = tw(t, 0, .6, 0, 80); // 左腕を前に(袋)
+  $('ai').innerHTML = intjSVG({ blink: blinkAt(T, .7), mouth: aiTalk && talkOpen(T) ? 'talk' : 'closed', eyes: 'neutral', armL });
+  setChara($('hana'), HANA, 0, 0, bobH);
+  setChara($('ai'), AI, 0, 0, bobA);
+  const bag = $('bag'); place(bag, 560, 1290); pop(bag, t, .3, .4, 3.0);
+  // アイテム落下
+  const drops = [['pudding', 320, .9], ['tissue', 560, 1.6], ['cocoa', 800, 2.3]];
+  drops.forEach(([id, x, t0]) => {
+    const el = $(id); if (t < t0) { show(el, false); return; }
+    show(el, true);
+    const u = clamp((t - t0) / .55, 0, 1);
+    const y = lerp(1000, 1270, E.outBounce(u));
+    place(el, x, y); el.style.setProperty('--s', '1');
+    el.style.opacity = 1;
+    el.querySelector('.label').style.opacity = clamp((t - t0 - .3) * 4, 0, 1);
+  });
+  const b = $('bub_ai3'); place(b, 700, 560); pop(b, t, 3.0, .35);
+  const h = $('bub_hana3'); place(h, 330, 560); pop(h, t, 4.3, .3);
+  const tl = $('tl3'); tl.style.top = '1180px'; tl.style.left = '300px'; pop(tl, t, 5.0, .3);
+}
+
+// ---- 5: 手帳 ----
+function shot5(t, T) {
+  const bobH = Math.sin(T * 2 * Math.PI * .9) * 4;
+  const bobA = Math.sin(T * 2 * Math.PI * .45) * 3;
+  const hanaTalk = t >= 6.8 && t < 7.8, aiTalk = t >= 8.1 && t < 8.9;
+  $('hana').innerHTML = enfpSVG({ blink: blinkAt(T, 1.2), mouth: hanaTalk && talkOpen(T) ? 'o' : 'closed', eyes: 'wide', tears: false, armL: 20, armR: -50 }, T);
+  $('ai').innerHTML = intjSVG({ blink: blinkAt(T, .7), mouth: aiTalk && talkOpen(T) ? 'talk' : 'closed', eyes: t >= 8.0 ? 'away' : 'neutral', blush: t >= 8.0 });
+  setChara($('hana'), HANA, 0, 0, bobH);
+  setChara($('ai'), AI, 0, 0, bobA);
+  // 小道具は机上に残す
+  [['pudding', 320], ['tissue', 560], ['cocoa', 800]].forEach(([id, x]) => { const el = $(id); show(el, true); place(el, x, 1270); el.style.setProperty('--s', '1'); el.style.opacity = 1; el.querySelector('.label').style.opacity = 0; });
+  // 手帳: 上昇 → 6.6 で下へ
+  const nb = $('notebook'); show(nb, true);
+  let top = tw(t, 0, .8, 1980, 250, E.outBack);
+  if (t >= 6.6) top = tw(t, 6.6, 7.2, 250, 1980, E.inOutCubic);
+  nb.style.top = top + 'px';
+  nb.querySelector('.caption').style.opacity = t < 6.6 ? 1 : 0;
+  $('dim').style.background = `rgba(20,12,40,${(t < 6.6 ? tw(t, 0, .6, 0, .55) : tw(t, 6.6, 7.2, .55, 0)).toFixed(3)})`;
+  const lines = [['n1', 1.0], ['n2', 1.5], ['n3', 2.0], ['n4', 2.9], ['n5', 3.4], ['n6', 4.2], ['n7', 5.0], ['n8', 5.6], ['n9', 6.1]];
+  lines.forEach(([id, t0]) => pop($(id), t, t0, .3));
+  const checks = [['n5', 3.95], ['n6', 4.75], ['n7', 5.45], ['n8', 6.0]];
+  checks.forEach(([id, t0]) => $(id).querySelector('.box').classList.toggle('on', t >= t0));
+  const h = $('bub_hana4'); place(h, 400, 560); pop(h, t, 6.8, .35, 8.1);
+  const a = $('bub_ai4'); place(a, 700, 560); pop(a, t, 8.1, .35);
+}
+
+// ---- 6: ハグ → 決めゼリフ ----
+function shot6(t, T) {
+  const bobA = Math.sin(T * 2 * Math.PI * .45) * 3;
+  const dx = tw(t, 0, .6, 0, 180, E.inOutCubic); // ハナがアイへ
+  const hug = t >= .5;
+  $('hana').innerHTML = enfpSVG({ blink: 0, mouth: 'smile', eyes: 'happy', tears: true, armL: hug ? -95 : 30, armR: hug ? -110 : -30 }, T);
+  $('ai').innerHTML = intjSVG({ blink: 0, mouth: 'closed', eyes: hug ? 'dot' : 'wide', sweat: hug, dots: hug && t < 2.4, armR: 0, armL: 0 });
+  setChara($('ai'), AI, 0, 0, bobA + (hug ? Math.sin(T * 40) * 1.5 : 0));
+  setChara($('hana'), HANA, dx, 0, hug ? Math.sin(T * 2 * Math.PI * 1.5) * 4 : 0, false);
+  $('hana').style.zIndex = 3; $('ai').style.zIndex = 2;
+  [['pudding', 320], ['tissue', 560], ['cocoa', 800]].forEach(([id, x]) => { const el = $(id); show(el, true); place(el, x, 1270); el.style.setProperty('--s', '1'); el.style.opacity = 1; el.querySelector('.label').style.opacity = 0; });
+  const th = $('th3'); place(th, 720, 560); pop(th, t, .9, .4, 2.6);
+  // 決めゼリフ
+  if (t >= 2.4) {
+    const w = $('wash'); show(w, true); w.style.opacity = tw(t, 2.4, 3.0, 0, 1, E.lin);
+    const p1 = $('p1'); p1.style.top = '520px'; pop(p1, t, 2.6, .45);
+    const p2 = $('p2'); p2.style.top = '650px'; pop(p2, t, 3.4, .45);
+  }
+  cam(tw(t, 2.4, 6.0, 1.0, 1.06, E.lin), 540, 900);
+}
+
+// ---- エンド ----
+function shotEnd(t) {
+  show($('end'), true);
+  $('room').style.display = 'none'; $('hana').style.display = 'none'; $('ai').style.display = 'none'; $('table').style.display = 'none';
+  pop($('e_badge'), t, .2, .4);
+  pop($('e_l1'), t, .7, .4); pop($('e_l2'), t, 1.0, .4); pop($('e_l3'), t, 1.3, .4);
+  pop($('e_l4'), t, 2.0, .4); pop($('e_badge2'), t, 2.3, .45); pop($('e_l5'), t, 2.5, .4);
+  const l6 = $('e_l6'); if (pop(l6, t, 3.2, .4)) l6.style.opacity = .7 + .3 * Math.sin(t * 6);
+}
+
+// ===================== seek =====================
+window.seek = function (T) {
+  T = clamp(T, 0, window.DURATION - 1e-4);
+  resetAll();
+  const shot = SHOTS.find(s => T >= s.start && T < s.end) || SHOTS[SHOTS.length - 1];
+  const t = T - shot.start;
+  switch (shot.name) {
+    case 'title': shot1(0, T); shotTitle(t); break;
+    case 's1': shot1(t, T); break;
+    case 's2': shot2(t, T); break;
+    case 's3': shot3(t, T); break;
+    case 's4': shot4(t, T); break;
+    case 's5': shot5(t, T); break;
+    case 's6': shot6(t, T); break;
+    case 'end': shotEnd(t); break;
+  }
+  drawSubs(T);
+  return shot.name;
+};
+
+// プレビュー用: ?t=秒 で静止、?play=1 でリアルタイム再生
+(function () {
+  const q = new URLSearchParams(location.search);
+  if (q.has('play')) {
+    const t0 = performance.now();
+    (function loop() { const T = ((performance.now() - t0) / 1000) % window.DURATION; window.seek(T); requestAnimationFrame(loop); })();
+  } else {
+    window.seek(parseFloat(q.get('t') || '0'));
+  }
+})();
+</script>
+</body>
+</html>
