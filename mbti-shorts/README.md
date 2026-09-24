@@ -7,6 +7,8 @@
 | **#2 教養ドラマ「不在通知SMSを押した3分後」** | Vyond 風 2D パペット（関節リグ） | 78秒 | `output/SMS_SCAM/SMS_SCAM_short.mp4` / 絵コンテ `output/SMS_SCAM/storyboard/` / 台本 `scripts/SMS_SCAM_script.md` |
 | #1 MBTI「INTJの友達に失恋相談した結果」 | ゆるキャラ SVG | 48秒 | `output/INTJ/INTJ_short.mp4` / 絵コンテ `output/INTJ/storyboard/` / 台本 `scripts/INTJ_script.md` / 調査 `research/INTJ_viral_research.md` |
 
+**シリーズ全体の最終方針は `docs/STRATEGY.md`**、台本の成功事例調査は `research/script_success_patterns.md`。
+
 どちらも H.264 + AAC のスマホ再生可能な MP4。#2 は音声（セリフ）なしの字幕版で、BGM と約90個の効果音はコード生成。
 
 ## Vyond 風リグ（#2 から導入）
