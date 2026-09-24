@@ -2,3 +2,7 @@
 output/*/frames/
 node_modules/
 *.log
+# 中間ファイル・再生成可能な音声
+output/*/_video_h264.mp4
+output/*/*_audio.wav
+output/*/*_vp9.mp4

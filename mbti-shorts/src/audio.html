@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>INTJ短編 音声生成 (Web Audio)</title></head>
+<body>
+<script>
+// =====================================================================
+//  BGM + 効果音を Web Audio API (OfflineAudioContext) でコード生成する。
+//  scene.html のタイムライン (秒) に合わせて SE を配置している。
+//  window.renderAudio() → { sampleRate, channels, pcm16: base64 }
+// =====================================================================
+const DURATION = 48.0;
+const SR = 48000;
+const BPM = 84, BEAT = 60 / BPM, BAR = BEAT * 4;
+
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12); // MIDI → Hz
+
+function makeNoise(ctx, sec) {
+  const buf = ctx.createBuffer(1, Math.ceil(sec * ctx.sampleRate), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return buf;
+}
+function makeImpulse(ctx, sec, decay) {
+  const buf = ctx.createBuffer(2, Math.ceil(sec * ctx.sampleRate), ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, decay);
+  }
+  return buf;
+}
+
+window.renderAudio = async function (mix) {
+  const MIX = Object.assign({ drums: 1, keys: 1, bass: 1, se: 1, crackle: 1, verb: 1 }, mix || {});
+  const ctx = new OfflineAudioContext(2, Math.ceil(DURATION * SR), SR);
+  const master = ctx.createGain(); master.gain.value = 1.0;
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = 0.004; comp.release.value = 0.18;
+  master.connect(comp); comp.connect(ctx.destination);
+
+  // リバーブ (SE 用センド)
+  const verb = ctx.createConvolver(); verb.buffer = makeImpulse(ctx, 1.6, 3.0);
+  const verbGain = ctx.createGain(); verbGain.gain.value = 0.35 * MIX.verb;
+  verb.connect(verbGain); verbGain.connect(master);
+
+  const noiseBuf = makeNoise(ctx, 2.0);
+
+  // ---------------- BGM (lo-fi hip hop) ----------------
+  const bgm = ctx.createGain(); bgm.gain.value = 0.62;
+  const lofi = ctx.createBiquadFilter(); lofi.type = 'lowpass'; lofi.frequency.value = 5200; lofi.Q.value = 0.6;
+  const bgmVerbSend = ctx.createGain(); bgmVerbSend.gain.value = 0.12;
+  bgm.connect(lofi); lofi.connect(master); lofi.connect(bgmVerbSend); bgmVerbSend.connect(verb);
+  const drums = ctx.createGain(); drums.gain.value = MIX.drums; drums.connect(bgm);
+  const keys = ctx.createGain(); keys.gain.value = MIX.keys; keys.connect(bgm);
+  const bassBus = ctx.createGain(); bassBus.gain.value = MIX.bass; bassBus.connect(bgm);
+
+  // 場面に合わせた BGM の音量オートメーション
+  const g = bgm.gain;
+  g.setValueAtTime(0.0, 0); g.linearRampToValueAtTime(0.62, 0.4);       // タイトル: フェードイン
+  g.setValueAtTime(0.62, 15.3); g.linearRampToValueAtTime(0.36, 15.9);  // 内心シーン: 引く
+  g.setValueAtTime(0.36, 21.3); g.linearRampToValueAtTime(0.62, 21.9);
+  g.setValueAtTime(0.62, 36.8); g.linearRampToValueAtTime(0.5, 37.3);   // ハグ〜決めゼリフ
+  g.setValueAtTime(0.5, 42.8); g.linearRampToValueAtTime(0.66, 43.3);   // エンドカード
+  g.setValueAtTime(0.66, 46.8); g.linearRampToValueAtTime(0.0, 48.0);   // フェードアウト
+  lofi.frequency.setValueAtTime(5200, 15.3); lofi.frequency.linearRampToValueAtTime(1800, 15.9);
+  lofi.frequency.setValueAtTime(1800, 21.3); lofi.frequency.linearRampToValueAtTime(5200, 21.9);
+  // 決めゼリフ中はドラムを抜く
+  drums.gain.setValueAtTime(MIX.drums, 37.0); drums.gain.linearRampToValueAtTime(0.0, 37.4);
+  drums.gain.setValueAtTime(0.0, 42.9); drums.gain.linearRampToValueAtTime(MIX.drums, 43.2);
+
+  // コード進行 (C major key, vi-ii-V-I). 決めゼリフ以降は明るく IV-V-I-I
+  const PROG_A = [[57, 60, 64, 67], [62, 65, 69, 72], [55, 59, 62, 65], [60, 64, 67, 71]]; // Am7 Dm7 G7 Cmaj7
+  const ROOT_A = [45, 50, 43, 48];
+  const PROG_B = [[53, 57, 60, 64], [55, 59, 62, 67], [60, 64, 67, 71], [60, 64, 67, 71]]; // Fmaj7 G Cmaj7 Cmaj7
+  const ROOT_B = [41, 43, 48, 48];
+
+  function rhodes(t, midi, dur, vel) {
+    const f = NOTE(midi);
+    const o1 = ctx.createOscillator(); o1.type = 'sine'; o1.frequency.value = f; o1.detune.value = (Math.random() - .5) * 8;
+    const o2 = ctx.createOscillator(); o2.type = 'triangle'; o2.frequency.value = f * 2; o2.detune.value = (Math.random() - .5) * 8;
+    const g1 = ctx.createGain(), g2 = ctx.createGain();
+    g1.gain.setValueAtTime(0, t); g1.gain.linearRampToValueAtTime(vel, t + 0.012); g1.gain.exponentialRampToValueAtTime(vel * 0.55, t + 0.45); g1.gain.exponentialRampToValueAtTime(vel * 0.22, t + dur - 0.15); g1.gain.linearRampToValueAtTime(0, t + dur);
+    g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(vel * 0.18, t + 0.008); g2.gain.exponentialRampToValueAtTime(0.0008, t + dur * 0.7);
+    o1.connect(g1); o2.connect(g2); g1.connect(keys); g2.connect(keys);
+    o1.start(t); o2.start(t); o1.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+  }
+  function pad(t, midi, dur, vel) {
+    t = Math.max(0, t);
+    const f = NOTE(midi);
+    for (const [type, det, gm] of [['sine', -6, 1], ['triangle', 6, 0.35]]) {
+      const o = ctx.createOscillator(); o.type = type; o.frequency.value = f; o.detune.value = det;
+      const gg = ctx.createGain();
+      gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel * gm, t + 0.6); gg.gain.setValueAtTime(vel * gm, t + dur - 0.6); gg.gain.linearRampToValueAtTime(0, t + dur);
+      o.connect(gg); gg.connect(keys); o.start(t); o.stop(t + dur + 0.05);
+    }
+  }
+  function bass(t, midi, dur, vel = 0.5) {
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = NOTE(midi);
+    const o2 = ctx.createOscillator(); o2.type = 'square'; o2.frequency.value = NOTE(midi);
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel, t + 0.015); gg.gain.setValueAtTime(vel, t + dur * 0.6); gg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    const g2 = ctx.createGain(); g2.gain.value = 0.12;
+    o.connect(gg); o2.connect(g2); g2.connect(lp); lp.connect(gg); gg.connect(bassBus);
+    o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+  }
+  function kick(t, vel = 0.9) {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.12);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(vel, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    o.connect(gg); gg.connect(drums); o.start(t); o.stop(t + 0.3);
+  }
+  function snare(t, vel = 0.5) {
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1900; bp.Q.value = 0.8;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(vel, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+    n.connect(bp); bp.connect(gg); gg.connect(drums); n.start(t, Math.random()); n.stop(t + 0.2);
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(210, t); o.frequency.exponentialRampToValueAtTime(120, t + 0.06);
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(vel * 0.5, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    o.connect(g2); g2.connect(drums); o.start(t); o.stop(t + 0.1);
+  }
+  function hat(t, vel = 0.14) {
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7500;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(vel, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+    n.connect(hp); hp.connect(gg); gg.connect(drums); n.start(t, Math.random()); n.stop(t + 0.06);
+  }
+  // レコードのクラックル (ずっと薄く)
+  {
+    const buf = ctx.createBuffer(1, Math.ceil(DURATION * SR), SR); const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) if (Math.random() < 0.00035) { const a = (Math.random() * 2 - 1) * 0.9; for (let k = 0; k < 40 && i + k < d.length; k++) d[i + k] += a * Math.pow(1 - k / 40, 2); }
+    const s = ctx.createBufferSource(); s.buffer = buf;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 5000;
+    const gg = ctx.createGain(); gg.gain.value = 0.16 * MIX.crackle; s.connect(lp); lp.connect(gg); gg.connect(bgm); s.start(0);
+  }
+  // シーケンス
+  const nBars = Math.ceil(DURATION / BAR) + 1;
+  for (let b = 0; b < nBars; b++) {
+    const t0 = b * BAR;
+    if (t0 >= DURATION) break;
+    const payoff = t0 >= 36.9 && t0 < 42.9;
+    const prog = payoff ? PROG_B : PROG_A, roots = payoff ? ROOT_B : ROOT_A;
+    const chord = prog[b % 4], root = roots[b % 4];
+    if (payoff) {
+      chord.forEach(n => pad(t0, n, BAR + 0.4, 0.09));
+      bass(t0, root, BAR * 0.9, 0.32);
+    } else {
+      chord.forEach((n, i) => rhodes(t0 + i * 0.012, n, BEAT * 2.5 + 0.1, 0.13));
+      chord.forEach((n, i) => rhodes(t0 + BEAT * 2.5 + i * 0.012, n, BEAT * 1.5 + 0.1, 0.10));
+      chord.slice(0, 3).forEach(n => pad(t0 - 0.2, n, BAR + 0.4, 0.028));
+      bass(t0, root, BEAT * 1.4); bass(t0 + BEAT * 1.5, root, BEAT * 0.9, 0.34); bass(t0 + BEAT * 2.5, root, BEAT * 0.9, 0.42); bass(t0 + BEAT * 3.5, root + (b % 2 ? 7 : 0), BEAT * 0.5, 0.36);
+      const sw = 0.055; // スウィング
+      kick(t0); kick(t0 + BEAT * 1.75 + sw, 0.7); kick(t0 + BEAT * 2.5, 0.85);
+      snare(t0 + BEAT, 0.5); snare(t0 + BEAT * 3, 0.55);
+      for (let h = 0; h < 8; h++) hat(t0 + h * BEAT / 2 + (h % 2 ? sw : 0), h % 2 ? 0.13 : 0.2);
+      if (b % 2 === 1) hat(t0 + BEAT * 3.75 + sw, 0.11);
+    }
+  }
+
+  // ---------------- 効果音 ----------------
+  const se = ctx.createGain(); se.gain.value = MIX.se; se.connect(master);
+  const seVerb = ctx.createGain(); seVerb.gain.value = 0.5; se.connect(seVerb); seVerb.connect(verb);
+
+  // ポン (吹き出し)
+  function pon(t, f0 = 720, vel = 0.5) {
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + 0.09);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel, t + 0.006); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    o.connect(gg); gg.connect(se); o.start(t); o.stop(t + 0.16);
+  }
+  // ポワン (思考バブル)
+  function powan(t, vel = 0.32) {
+    for (const [f, d] of [[520, 0.5], [780, 0.55], [1040, 0.6]]) {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(f * 0.9, t); o.frequency.linearRampToValueAtTime(f, t + 0.18);
+      const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel / 3, t + 0.05); gg.gain.exponentialRampToValueAtTime(0.001, t + d);
+      o.connect(gg); gg.connect(se); o.start(t); o.stop(t + d + 0.05);
+    }
+  }
+  // ドン (インパクト)
+  function don(t, vel = 0.9, low = 60) {
+    const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(low * 2.6, t); o.frequency.exponentialRampToValueAtTime(low, t + 0.16);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(vel, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    o.connect(gg); gg.connect(se); o.start(t); o.stop(t + 0.6);
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(3000, t); lp.frequency.exponentialRampToValueAtTime(200, t + 0.25);
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(vel * 0.5, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    n.connect(lp); lp.connect(g2); g2.connect(se); n.start(t, Math.random()); n.stop(t + 0.35);
+  }
+  // バン (叫び・シェイク)
+  function ban(t) {
+    don(t, 1.0, 55);
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.5;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0.45, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    n.connect(bp); bp.connect(gg); gg.connect(se); n.start(t, Math.random()); n.stop(t + 0.75);
+  }
+  // カッ (スタンプ)
+  function stamp(t, vel = 0.7) {
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 1.2;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(vel, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+    n.connect(bp); bp.connect(gg); gg.connect(se); n.start(t, Math.random()); n.stop(t + 0.08);
+    don(t + 0.005, 0.35, 90);
+  }
+  // シュッ (ホワイトボード/手帳の移動)
+  function whoosh(t, dur = 0.45, vel = 0.4, up = true) {
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.0;
+    bp.frequency.setValueAtTime(up ? 400 : 2400, t); bp.frequency.exponentialRampToValueAtTime(up ? 2400 : 400, t + dur);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel, t + dur * 0.5); gg.gain.linearRampToValueAtTime(0, t + dur);
+    n.connect(bp); bp.connect(gg); gg.connect(se); n.start(t, Math.random()); n.stop(t + dur + 0.02);
+  }
+  // ピッ (マーカー・チェック)
+  function pi(t, f = 1300, vel = 0.32, dur = 0.06) {
+    const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = f;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4000;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel, t + 0.004); gg.gain.setValueAtTime(vel, t + dur - 0.01); gg.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(lp); lp.connect(gg); gg.connect(se); o.start(t); o.stop(t + dur + 0.01);
+  }
+  function check(t) { pi(t, 1100, 0.3, 0.05); pi(t + 0.07, 1650, 0.3, 0.09); }
+  // キラン (眼鏡の光)
+  function kiran(t, vel = 0.35) {
+    for (const [f, d, dl] of [[2637, 0.9, 0], [3951, 0.8, 0.03], [5274, 0.6, 0.06]]) {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+      const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t + dl); gg.gain.linearRampToValueAtTime(vel / 3, t + dl + 0.01); gg.gain.exponentialRampToValueAtTime(0.001, t + dl + d);
+      o.connect(gg); gg.connect(se); o.start(t + dl); o.stop(t + dl + d + 0.05);
+    }
+  }
+  // コトン (物を置く)
+  function koton(t, vel = 0.55, f = 240) {
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 0.6, t + 0.08);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(vel, t); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+    o.connect(gg); gg.connect(se); o.start(t); o.stop(t + 0.2);
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200;
+    const g2 = ctx.createGain(); g2.gain.setValueAtTime(vel * 0.5, t); g2.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    n.connect(lp); lp.connect(g2); g2.connect(se); n.start(t, Math.random()); n.stop(t + 0.06);
+  }
+  // サッ (ペンで書く)
+  function scribble(t, dur = 0.22, vel = 0.22) {
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 3200; bp.Q.value = 0.7;
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t);
+    for (let i = 0; i < 4; i++) { gg.gain.linearRampToValueAtTime(vel, t + dur * (i + 0.3) / 4); gg.gain.linearRampToValueAtTime(vel * 0.2, t + dur * (i + 0.9) / 4); }
+    gg.gain.linearRampToValueAtTime(0, t + dur);
+    n.connect(bp); bp.connect(gg); gg.connect(se); n.start(t, Math.random()); n.stop(t + dur + 0.02);
+  }
+  // ぽふっ (ハグ)
+  function pofu(t) {
+    const n = ctx.createBufferSource(); n.buffer = noiseBuf;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(900, t); lp.frequency.exponentialRampToValueAtTime(250, t + 0.2);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(0.6, t + 0.02); gg.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+    n.connect(lp); lp.connect(gg); gg.connect(se); n.start(t, Math.random()); n.stop(t + 0.32);
+    don(t, 0.35, 70);
+  }
+  // ジャン (コードスタブ)
+  function stab(t, notes, vel = 0.18, dur = 1.4) { notes.forEach((n, i) => rhodesSE(t + i * 0.01, n, dur, vel)); }
+  function rhodesSE(t, midi, dur, vel) {
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = NOTE(midi);
+    const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t); gg.gain.linearRampToValueAtTime(vel, t + 0.01); gg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(gg); gg.connect(se); o.start(t); o.stop(t + dur + 0.05);
+  }
+  // シマー (決めゼリフの余韻)
+  function shimmer(t, vel = 0.12, dur = 2.5) {
+    [72, 76, 79, 84].forEach((m, i) => {
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = NOTE(m);
+      const gg = ctx.createGain(); gg.gain.setValueAtTime(0, t + i * 0.08); gg.gain.linearRampToValueAtTime(vel, t + i * 0.08 + 0.4); gg.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      o.connect(gg); gg.connect(seVerb); o.start(t); o.stop(t + dur + 0.1);
+    });
+  }
+
+  // ---- タイムライン配置 (scene.html と同期) ----
+  // タイトル
+  don(0.12, 0.6, 80); don(0.38, 0.8); don(0.84, 1.0, 50); pi(1.18, 1800, 0.18, 0.05); whoosh(2.25, 0.4, 0.35, false);
+  // 1: 相談
+  pon(3.0, 620, 0.45); pon(6.0, 520, 0.4); stamp(7.0);
+  // 2: 分析
+  whoosh(8.55, 0.45, 0.45, false); koton(9.1, 0.6, 180);
+  pon(9.0, 700); pi(10.1); pi(10.9); pi(11.7);
+  ban(12.8); stamp(13.9, 0.5);
+  // 3: 内心
+  whoosh(15.5, 0.8, 0.25, true); kiran(15.85); powan(15.8); powan(18.9); pi(19.7, 900, 0.15, 0.08);
+  // 4: 差し入れ
+  scribble(21.8, 0.4, 0.18); koton(22.5); koton(23.2, 0.5, 300); koton(23.9, 0.55, 210);
+  pon(24.5, 520, 0.4); pon(25.8, 820, 0.4); stamp(26.5, 0.5);
+  // 5: 手帳
+  whoosh(27.5, 0.6, 0.45, true); koton(28.2, 0.4, 160);
+  [28.5, 29.0, 29.5, 30.4, 30.9, 31.7, 32.5, 33.1, 33.6].forEach(t => scribble(t, 0.2, 0.2));
+  [31.45, 32.25, 32.95, 33.5].forEach(t => check(t));
+  whoosh(34.1, 0.5, 0.35, false); pon(34.3, 620, 0.45); pon(35.6, 500, 0.4);
+  // 6: ハグ → 決めゼリフ
+  pofu(37.5); powan(37.9, 0.25);
+  don(39.6, 0.9, 48); shimmer(39.7); don(40.4, 0.8, 44); shimmer(40.5, 0.1, 3.0);
+  // エンドカード
+  pon(43.2, 760, 0.45); pon(43.7, 660, 0.4); pon(44.0, 720, 0.4); pon(44.3, 780, 0.4);
+  stab(45.3, [65, 69, 72, 77], 0.16); pon(45.5, 900, 0.35); pi(46.2, 1500, 0.2, 0.06);
+
+  const buf = await ctx.startRendering();
+  // ピークノーマライズ (-1 dBFS) して 16bit PCM インターリーブ
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  let peak = 0; for (let i = 0; i < L.length; i++) { peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i])); }
+  const norm = peak > 0 ? Math.pow(10, -1 / 20) / peak : 1;
+  const pcm = new Int16Array(L.length * 2);
+  for (let i = 0; i < L.length; i++) {
+    pcm[2 * i] = Math.max(-32768, Math.min(32767, Math.round(L[i] * norm * 32767)));
+    pcm[2 * i + 1] = Math.max(-32768, Math.min(32767, Math.round(R[i] * norm * 32767)));
+  }
+  const bytes = new Uint8Array(pcm.buffer);
+  let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return { sampleRate: SR, channels: 2, peakBefore: peak, pcm16: btoa(bin) };
+};
+</script>
+</body>
+</html>
