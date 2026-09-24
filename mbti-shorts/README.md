@@ -4,12 +4,14 @@
 
 | エピソード | 様式 | 尺 | 成果物 |
 |---|---|---|---|
-| **#2 教養ドラマ「不在通知SMSを押した3分後」** | Vyond 風 2D パペット（関節リグ） | 78秒 | `output/SMS_SCAM/SMS_SCAM_short.mp4` / 絵コンテ `output/SMS_SCAM/storyboard/` / 台本 `scripts/SMS_SCAM_script.md` |
+| **#2 v2 教養ドラマ「不在通知SMSを押した3分後」ナレーション版** | Vyond 風 2D パペット + 一人ナレーション (Fish Audio) | 122秒 | `output/SMS_SCAM_V2/SMS_SCAM_V2_short.mp4` (声なし比較版 `SMS_SCAM_V2_novoice.mp4`) / 絵コンテ `output/SMS_SCAM_V2/storyboard/` / 台本 `scripts/SMS_SCAM_v2_script.md` / 読み上げ原稿 `scripts/SMS_SCAM_v2_narration.txt` |
+| #2 v1 同・字幕のみ版 | Vyond 風 2D パペット（関節リグ） | 78秒 | `output/SMS_SCAM/SMS_SCAM_short.mp4` / 絵コンテ `output/SMS_SCAM/storyboard/` / 台本 `scripts/SMS_SCAM_script.md` |
 | #1 MBTI「INTJの友達に失恋相談した結果」 | ゆるキャラ SVG | 48秒 | `output/INTJ/INTJ_short.mp4` / 絵コンテ `output/INTJ/storyboard/` / 台本 `scripts/INTJ_script.md` / 調査 `research/INTJ_viral_research.md` |
 
 **シリーズ全体の最終方針は `docs/STRATEGY.md`**、台本の成功事例調査は `research/script_success_patterns.md`。
 
-どちらも H.264 + AAC のスマホ再生可能な MP4。#2 は音声（セリフ）なしの字幕版で、BGM と約90個の効果音はコード生成。
+いずれも H.264 + AAC のスマホ再生可能な MP4。BGM と効果音はコード生成。#2 v2 は Fish Audio で作った一人ナレーション (MP3) を取り込み、
+無音検出で台本の行に自動で尺合わせ → 映像タイムラインをその秒数で駆動 → BGM をナレーションに合わせて自動ダッキング、まで全部コードで行う。
 
 ## Vyond 風リグ（#2 から導入）
 
@@ -48,6 +50,38 @@ tools/build_final.sh   png2yuv.js で RGB→YUV420p(BT.709) 変換 → ffmpeg/li
 2026年のAIショートアニメ制作で主流の「静止画（コマ）を1枚ずつ生成し、連番を動画に連結する」フローをそのままコード化している。
 コマ生成を Nano Banana 等のAI画像に置き換えたい場合は `output/INTJ/frames/` の連番PNGを差し替えて `tools/build_final.sh --video` を再実行すればよい（`docs/ai_image_prompts.md` 参照）。
 
+## ナレーション音声を取り込む（#2 v2 から）
+
+声は Fish Audio 等の外部 TTS で **一人のナレーターがまとめて読んだ 1 本の音声** を用意する (`scripts/SMS_SCAM_v2_narration.txt` が読み上げ原稿。1行=1ナレーション)。
+それを以下の 3 段で映像に同期させる。
+
+```
+narration.mp3 ──ffmpeg──▶ narration.wav (48k mono)
+       │
+       ▼  tools/align_narration.py  (silencedetect → 行ごとの区間を DP で割当)
+narration_times.js   const NARR = [{id, s, e, t}, ...]
+       │
+       ├─▶ scene_v2.html / scene_v2_timeline.js   L(n)=NARR[n-1].s を各ショットの開始時刻に使う。字幕も NARR から自動表示
+       └─▶ audio_v2.html                          同じ L(n) で BGM の場面転換・SE を配置。声の RMS 包絡で BGM を -9dB ダッキング
+```
+
+```bash
+FFMPEG=/tmp/build/prefix/bin/ffmpeg
+$FFMPEG -i narration.mp3 -ac 1 -ar 48000 output/SMS_SCAM/voice/narration_v1.wav
+python3 tools/align_narration.py --audio output/SMS_SCAM/voice/narration_v1.wav \
+    --script scripts/SMS_SCAM_v2_narration.txt --out src/episodes/sms_scam/narration_times.js \
+    --override 1:0.0:2.63 --override 2:2.87:5.89        # 自動割当がずれた行だけ手で直す (id:開始:終了)
+#   （#2 v2 の実際の値は src/episodes/sms_scam/narration_align.sh に固定してある）
+node src/render_audio.js --src src/episodes/sms_scam/audio_v2.html \
+    --voice output/SMS_SCAM/voice/narration_v1.wav --out output/SMS_SCAM_V2/SMS_SCAM_V2_audio.wav
+#   --mix '{"voice":0}' で声なし版、'{"bgm":0}' で SE+声のみ
+```
+
+- 自動割当は文字数比の期待尺と無音区間から行境界を推定する。TTS の読みの速さが行ごとに大きく違う箇所 (今回は 27 行中 8 行) は
+  表示される一覧を見て `--override` で直す。
+- 声の処理: 80Hz ハイパス → 3kHz +2dB → コンプレッサ → BGM 側を包絡でダッキング (速く下げ・ゆっくり戻す)。最終的に `loudnorm -14 LUFS`。
+- 全尺にごく小さなルームトーン (-50dBFS) を敷き、BGM の切れ目が「音切れ」に聞こえないようにしている。
+
 ## 使い方
 
 ```bash
@@ -55,7 +89,7 @@ export NODE_PATH=/opt/node22/lib/node_modules   # playwright がグローバル�
 
 # 1. 1コマずつレンダリング（#2: 約12分 / #1: 約7分、4コア）
 node src/render_frames.js --scene src/episodes/sms_scam/scene.html --out output/SMS_SCAM/frames --fps 24
-#   （#1 は --scene を省略）
+#   （#1 は --scene を省略。#2 v2 は scene_v2.html → output/SMS_SCAM_V2/frames、約20分）
 
 # 2. 音声を生成（約20秒）
 node src/render_audio.js --src src/episodes/sms_scam/audio.html --out output/SMS_SCAM/SMS_SCAM_audio.wav
@@ -64,7 +98,7 @@ node src/render_audio.js --src src/episodes/sms_scam/audio.html --out output/SMS
 bash tools/build_ffmpeg.sh            # → /tmp/build/prefix/bin/ffmpeg
 
 # 4. MP4 化（映像 H.264 約4分 + 音声多重化 数秒。音だけ直したら --video 無しで再実行）
-FFMPEG=/tmp/build/prefix/bin/ffmpeg bash tools/build_final.sh SMS_SCAM 24 --video   # #1 は INTJ
+FFMPEG=/tmp/build/prefix/bin/ffmpeg bash tools/build_final.sh SMS_SCAM 24 --video   # #1 は INTJ、#2 v2 は SMS_SCAM_V2
 
 # （ffmpeg が無い場合の予備: VP9 で MP4 化・Chromium で検証）
 node src/encode_mp4.js --frames output/INTJ/frames --fps 24 --out output/INTJ/INTJ_short_vp9.mp4
@@ -95,7 +129,13 @@ window.renderAudio({ drums: 0, keys: 0, bass: 0, crackle: 0 })   // SE のみ
 
 ## 投稿メモ
 
-### #2 不在通知SMSを押した3分後
+### #2 v2 不在通知SMSを押した3分後（ナレーション版・122秒）
+- 構成: 事後カット「え、残高、ゼロ？」(0-3s) → 巻き戻し → 日常 → 認証コード入力 → 残高0 → リンの緊急停止 (奮闘) → 一時停止して図解 → 電話 → 送金失敗・凍結 (スカッと) → URL の見分け方 → 翌日、紙の不在票 (皮肉) → 冒頭と同じ構図でスマホを裏返す (ループ)
+- コメント誘発: 「同じSMS来た人 👋」テロップ + 決めゼリフ「認証コードは、鍵。」で締める
+- 一人ナレーション (His Story 型)。セリフは吹き出し文字で見せ、ナレーターが地の文で語る
+- 声なし比較版 `SMS_SCAM_V2_novoice.mp4` も同梱 (BGM・SE のみ)
+
+### #2 v1 不在通知SMSを押した3分後（字幕のみ・78秒）
 - 60〜90秒の教養ドラマ枠。冒頭2秒で結末（残高0）→ 巻き戻し → 日常 → 一時停止して図解 → 皮肉のオチ → 3行の教訓
 - 固有名はすべて架空（NK EXPRESS / みらい銀行 / nk-express-jp.top）。実在企業・人物は出さない
 - ハッシュタグ: `#詐欺 #フィッシング #宅配 #SMS #知らないと損 #ショートドラマ #アニメ`

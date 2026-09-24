@@ -13,6 +13,8 @@ function arg(name, def) { const i = process.argv.indexOf('--' + name); return i 
 const SRC_ARG = arg('src', null);
 const SRC = SRC_ARG ? path.resolve(process.cwd(), SRC_ARG) : path.resolve(__dirname, 'audio.html');
 const OUT = path.resolve(process.cwd(), arg('out', 'output/INTJ/INTJ_audio.wav'));
+const VOICE = arg('voice', null);   // ナレーション WAV (16bit PCM) を page に base64 で渡す
+const MIX = arg('mix', null);       // 例: '{"bgm":0}'
 
 function wavHeader(dataLen, sampleRate, channels) {
   const h = Buffer.alloc(44);
@@ -29,7 +31,9 @@ function wavHeader(dataLen, sampleRate, channels) {
   page.on('pageerror', e => console.error('pageerror', e));
   await page.goto('file://' + SRC);
   const t0 = Date.now();
-  const r = await page.evaluate(() => window.renderAudio());
+  const voiceB64 = VOICE ? fs.readFileSync(path.resolve(process.cwd(), VOICE)).toString('base64') : null;
+  const mix = MIX ? JSON.parse(MIX) : null;
+  const r = await page.evaluate(([m, v]) => window.renderAudio(m, v), [mix, voiceB64]);
   await browser.close();
   const pcm = Buffer.from(r.pcm16, 'base64');
   fs.mkdirSync(path.dirname(OUT), { recursive: true });

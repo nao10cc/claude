@@ -117,9 +117,8 @@ const SFX = (() => {
     const kick = (t, v = .9) => { const o = ctx.createOscillator(); o.frequency.setValueAtTime(160, t); o.frequency.exponentialRampToValueAtTime(42, t + .12); const g = ctx.createGain(); g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(.001, t + .28); o.connect(g); g.connect(bus); o.start(t); o.stop(t + .3); };
     const snare = (t, v = .5) => { burst(ctx, bus, { t, dur: .16, vel: v, f: 1900, q: .8 }); tone(ctx, bus, { t, f: 210, f2: 120, type: 'triangle', dur: .09, vel: v * .5, a: .002 }); };
     const hat = (t, v = .15) => burst(ctx, bus, { t, dur: .045, vel: v, type: 'highpass', f: 7500 });
-    const startBar = Math.floor(from / BAR);
-    for (let b = startBar; b * BAR < to; b++) {
-      const t0 = b * BAR; if (t0 < from - .01) continue;
+    // 小節グリッドは from を起点にする (絶対グリッドだと最初の小節が丸ごと欠けて無音が生じる)
+    for (let b = 0, t0 = from; t0 < to; b++, t0 = from + b * BAR) {
       const chord = prog[b % prog.length], root = roots[b % roots.length];
       chord.forEach((n, i) => rhodes(t0 + i * .012, n, BEAT * 2.5 + .1, .13));
       chord.forEach((n, i) => rhodes(t0 + BEAT * 2.5 + i * .012, n, BEAT * 1.5 + .1, .10));

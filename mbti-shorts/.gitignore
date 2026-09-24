@@ -6,3 +6,6 @@ node_modules/
 output/*/_video_h264.mp4
 output/*/*_audio.wav
 output/*/*_vp9.mp4
+# 取り込んだナレーションの WAV (MP3 から再生成可能)
+output/*/voice/*.wav
+output/*/*_novoice_audio.wav

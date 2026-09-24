@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><title>SMS詐欺編 v2 音声 (ナレーション + BGM/SE)</title></head>
+<body>
+<script src="../../lib/sfx.js"></script>
+<script src="narration_times.js"></script>
+<script>
+// v2: ナレーション WAV (base64 で渡される) を主役に、BGM を声区間で自動ダッキング、SE を各行の秒数に同期。
+const DURATION = 122.0, SR = 48000;
+const L = n => NARR[n - 1].s, LE = n => NARR[n - 1].e;
+
+function decodeWav(b64) {
+  const bin = atob(b64); const buf = new ArrayBuffer(bin.length); const u8 = new Uint8Array(buf);
+  for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  const dv = new DataView(buf);
+  const ch = dv.getUint16(22, true), sr = dv.getUint32(24, true), bits = dv.getUint16(34, true);
+  let off = 12; while (off < buf.byteLength) { const id = String.fromCharCode(u8[off], u8[off + 1], u8[off + 2], u8[off + 3]); const sz = dv.getUint32(off + 4, true); if (id === 'data') { off += 8; const n = sz / (bits / 8) / ch; const out = new Float32Array(n); for (let i = 0; i < n; i++) out[i] = dv.getInt16(off + i * ch * 2, true) / 32768; return { sr, data: out }; } off += 8 + sz; }
+  throw new Error('no data chunk');
+}
+
+window.renderAudio = async function (mix, voiceB64) {
+  const MIX = Object.assign({ bgm: 1, se: 1, voice: 1 }, mix || {});
+  const ctx = new OfflineAudioContext(2, Math.ceil(DURATION * SR), SR);
+  const master = ctx.createGain();
+  const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -12; comp.knee.value = 10; comp.ratio.value = 3; comp.attack.value = .005; comp.release.value = .2;
+  master.connect(comp); comp.connect(ctx.destination);
+  const verb = ctx.createConvolver(); verb.buffer = SFX.impulse(ctx, 1.6, 3.0);
+  const verbGain = ctx.createGain(); verbGain.gain.value = .25; verb.connect(verbGain); verbGain.connect(master);
+
+  // ---------------- ナレーション ----------------
+  let env = null; // 50ms ごとの声のエネルギー (ダッキング用)
+  if (voiceB64) {
+    const v = decodeWav(voiceB64);
+    const vb = ctx.createBuffer(1, v.data.length, v.sr); vb.getChannelData(0).set(v.data);
+    const src = ctx.createBufferSource(); src.buffer = vb;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 80;
+    const pre = ctx.createBiquadFilter(); pre.type = 'peaking'; pre.frequency.value = 3000; pre.gain.value = 2; pre.Q.value = .8;
+    const vg = ctx.createGain(); vg.gain.value = 1.9 * MIX.voice;   // -21.5 LUFS → 約 -16 LUFS 相当
+    const vc = ctx.createDynamicsCompressor(); vc.threshold.value = -18; vc.knee.value = 8; vc.ratio.value = 3; vc.attack.value = .004; vc.release.value = .12;
+    src.connect(hp); hp.connect(pre); pre.connect(vc); vc.connect(vg); vg.connect(master);
+    src.start(0);
+    const win = Math.floor(v.sr * .05); env = [];
+    for (let i = 0; i < v.data.length; i += win) { let acc = 0; const n = Math.min(win, v.data.length - i); for (let k = 0; k < n; k++) acc += v.data[i + k] * v.data[i + k]; env.push(Math.sqrt(acc / n)); }
+  }
+
+  // ---------------- BGM ----------------
+  const bgm = ctx.createGain(); bgm.gain.value = MIX.bgm; bgm.connect(master);
+  const duck = ctx.createGain(); duck.gain.value = 1; bgm.connect(duck); duck.connect(master); bgm.disconnect(master); // bgm → duck → master
+  const send = ctx.createGain(); send.gain.value = .08; duck.connect(send); send.connect(verb);
+  // 場面: 日常 lo-fi (L3〜L9) / 緊張 (L9〜L13) / パッド (保留〜図解) / 静かな緊張 (電話〜失敗) / 明るい lo-fi (戻った〜)
+  const lofiA = SFX.bgmLofi(ctx, bgm, { from: L(2) + .8, to: L(9) + .4, bpm: 90, prog: [[60, 64, 67, 71], [57, 60, 64, 67], [65, 69, 72, 76], [55, 59, 62, 67]], roots: [48, 45, 41, 43], vel: .34 });
+  lofiA.gain.setValueAtTime(0, L(2) + .8); lofiA.gain.linearRampToValueAtTime(.34, L(2) + 1.6); lofiA.gain.setValueAtTime(.34, L(9) - .4); lofiA.gain.linearRampToValueAtTime(0, L(9) + .4);
+  const tense = SFX.bgmTense(ctx, bgm, { from: L(9), to: L(14) + 1.2, bpm: 100, root: 45, vel: .42 });
+  // 緊張の空白 (L14+1.2〜L16): 完全無音を避けるため低いドローン + 心拍
+  const gapPad = SFX.bgmPad(ctx, bgm, { from: L(14) + .6, to: L(16) + .4, chords: [[45, 52, 56], [45, 52, 56]], barSec: 3.4, vel: .28, hats: false });
+  gapPad.gain.setValueAtTime(0, L(14) + .6); gapPad.gain.linearRampToValueAtTime(.28, L(14) + 1.4); gapPad.gain.setValueAtTime(.28, L(16) - .3); gapPad.gain.linearRampToValueAtTime(0, L(16) + .4);
+  // ルームトーン: 全尺に極小のノイズ床 (デジタル無音の"音切れ感"を防ぐ)
+  { const rt = ctx.createBufferSource(); rt.buffer = SFX.noise(ctx); rt.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 120;
+    const g = ctx.createGain(); g.gain.value = .006; // ≒ -50 dBFS
+    rt.connect(hp); hp.connect(lp); lp.connect(g); g.connect(master); rt.start(0); rt.stop(DURATION); }
+  const pad = SFX.bgmPad(ctx, bgm, { from: L(16), to: L(20) + .6, chords: [[57, 60, 64, 67], [55, 59, 62, 67], [53, 57, 60, 64], [55, 59, 62, 67]], barSec: 3.4, vel: .55, hats: false });
+  pad.gain.setValueAtTime(0, L(16)); pad.gain.linearRampToValueAtTime(.55, L(16) + 1.0); pad.gain.setValueAtTime(.55, L(20)); pad.gain.linearRampToValueAtTime(0, L(20) + .6);
+  const tense2 = SFX.bgmTense(ctx, bgm, { from: L(20) + .4, to: L(23) - .2, bpm: 96, root: 43, vel: .34 });
+  const lofiB = SFX.bgmLofi(ctx, bgm, { from: L(23), to: DURATION, bpm: 92, prog: [[60, 64, 67, 71], [65, 69, 72, 76], [57, 60, 64, 67], [55, 59, 62, 67]], roots: [48, 41, 45, 43], vel: .36 });
+  lofiB.gain.setValueAtTime(0, L(23)); lofiB.gain.linearRampToValueAtTime(.36, L(23) + .6); lofiB.gain.setValueAtTime(.36, DURATION - 1.2); lofiB.gain.linearRampToValueAtTime(0, DURATION - .05);
+  // 事後カット (0〜L2): 低いドローンのみ
+  SFX.tone(ctx, bgm, { t: 0, f: 55, type: 'sawtooth', dur: L(2) + .6, vel: .09, a: .3, curve: 'lin', filt: { f: 240 } });
+  SFX.tone(ctx, bgm, { t: 0, f: 55.5, type: 'sine', dur: L(2) + .6, vel: .12, a: .3, curve: 'lin' });
+  // ダッキング: 声のエネルギーに応じて BGM を -9dB まで下げる (50ms 粒度、なめらかに)
+  if (env) {
+    const g = duck.gain; g.setValueAtTime(1, 0);
+    let cur = 1;
+    for (let i = 0; i < env.length; i++) {
+      const t = i * .05; const target = env[i] > .012 ? .36 : 1;
+      cur = cur + (target - cur) * (target < cur ? .55 : .12); // 速く下げ、ゆっくり戻す
+      g.linearRampToValueAtTime(cur, t + .05);
+    }
+  }
+
+  // ---------------- SE ----------------
+  const se = ctx.createGain(); se.gain.value = MIX.se * .85; se.connect(master);
+  const seSend = ctx.createGain(); seSend.gain.value = .3; se.connect(seSend); seSend.connect(verb);
+  const K = SFX.kit(ctx, se, verb);
+  const keys = (t0, n, step) => { for (let i = 0; i < n; i++) K.key(t0 + i * step + Math.random() * .015); };
+
+  // 事後 → 巻き戻し
+  K.alert(0.05, .5); K.don(0.65, .8, 50); K.heart(1.3, .5);
+  K.rewind(L(2) + .1, 1.2); K.click(L(2) + 1.4);
+  // 通知 → タップ
+  K.piron(L(3) + 2.7); K.whoosh(L(4) - .5, .5, .3, true); K.tap(L(5) + 2.45); K.tick(L(5) + 2.9, .1); K.tick(L(5) + 3.2, .1);
+  // 偽サイト
+  K.whoosh(L(6), .3, .25, false); keys(L(7) + .3, 11, .16); keys(L(7) + 2.3, 10, .14); K.tap(LE(7) + .15); K.pon(LE(7) + .5, 900, .25);
+  // リン
+  [0, .35, .7, 1.05, 1.4].forEach(d => K.koton(L(8) + d, .28, 150)); K.pon(L(8) + 1.7, 700, .35); K.pon(L(8) + 4.4, 620, .35);
+  // 認証コード
+  K.piron(L(9) + .2, .5); K.pi(L(9) + 2.9, 1500, .18, .06); K.alert(L(9) + 5.2, .3);
+  // 止まれるか → 入力
+  K.click(L(10), .45); K.whoosh(L(10) + .05, .4, .25, false); K.pon(L(10) + .1, 520, .3);
+  keys(L(10) + 2.4, 6, .3); K.tap(L(11) + 1.6); for (let t = L(11) + 2.1; t < L(12); t += .25) K.tick(t, .12);
+  // 詐欺師
+  K.whoosh(L(12), .5, .35, true); K.don(L(12) + .05, .5, 40); [0.0, .5, 1.0].forEach(d => keys(L(12) + d, 6, .05)); K.success(L(12) + 1.6, .3); K.click(LE(12) - .5); K.coins(LE(12) - .45, .35); K.don(LE(12) - .4, .7, 44);
+  // 残高ゼロ
+  K.alert(L(13) + .1, .6); K.buzz(L(13) + .5, .45); K.heart(L(13) + 1.4, .5); K.heart(L(13) + 2.4, .45);
+  // リン → 緊急停止
+  K.pon(L(14) + .8, 700, .4); for (let t = L(15) + .2; t < L(15) + 1.9; t += .75) K.heart(t, .5); K.whoosh(L(15) + 1.9, .3, .3, true); K.tap(LE(15) - .5); K.success(LE(15) - .1, .3);
+  // 保留 → 一時停止 → 図解
+  for (let t = L(16) + .2; t < L(16) + 1.2; t += .5) K.pi(t, 880, .12, .18);
+  K.click(L(16) + 1.2, .45); K.whoosh(L(16) + 1.25, .5, .25, false);
+  K.node(L(17) - .1); K.node(L(17) + .2); K.node(L(17) + .5);
+  K.arrow(L(17) + .6); K.pon(L(17) + 1.0, 800, .25); K.arrow(L(17) + 2.6); K.pon(L(17) + 3.2, 800, .25);
+  K.arrow(L(18) + .6); K.pon(L(18) + 1.2, 1000, .25);
+  K.arrow(L(19) + .4); K.pon(L(19) + .8, 600, .3); K.arrow(L(19) + 2.2); K.don(L(19) + 2.8, .6, 50); K.buzz(L(19) + 3.2, .3);
+  K.don(L(19) + 3.4, .8, 48); K.shimmer(L(19) + 3.5); K.don(L(19) + 3.9, .7, 44);
+  // 電話
+  K.whoosh(L(20), .4, .25, true); K.pi(L(20) + .3, 440, .18, .3); K.pon(L(20) + 2.6, 620, .35); K.pon(L(20) + 5.6, 800, .3);
+  // 確認します
+  K.pon(L(21) + .1, 520, .3); for (let t = L(21) + 1.0; t < L(22); t += .7) K.heart(t, .55);
+  // 失敗 (スカッと)
+  K.whoosh(L(22), .5, .35, true); for (let t = L(22) + .2; t < L(22) + 2.3; t += .3) K.tick(t, .12);
+  K.buzz(L(22) + 2.3, .55); K.don(L(22) + 2.35, .9, 40); K.stamp(L(22) + 3.2, .6); K.pon(L(22) + 2.55, 300, .4); K.pi(LE(22) + .3, 1200, .3, .1); K.pi(LE(22) + .42, 1600, .3, .12);
+  // 戻った
+  K.alert(L(23) - .1, .5); K.kiran(L(23) + .3, .3); K.success(L(23) + .2, .35);
+  // URL
+  K.pon(L(24) + .3, 700, .3); K.whoosh(L(24) + 2.0, .35, .25, true); K.stamp(L(24) + 3.0, .5); K.stamp(L(24) + 4.2, .5); K.check(L(24) + 5.9); K.pi(L(24) + 7.2, 1200, .2, .06);
+  // 押す前に
+  K.stamp(L(25) + .2, .6);
+  // 翌日 → 紙
+  K.don(L(26) - .1, .5, 60); K.whoosh(L(26) + .9, .4, .25, true); K.doorbell(L(26) + 1.0); K.paper(L(26) + 1.35); [1.2, 1.55, 1.9, 2.25].forEach(d => K.koton(L(26) + d, .26, 150));
+  // 本物は紙で来た → 回復カット → ループ
+  K.kiran(L(27) + .4, .2); K.whoosh(L(27) + 1.9, .4, .3, false); K.koton(L(27) + 3.1, .4, 200); K.pon(L(27) + 2.8, 760, .3); K.pon(L(27) + 3.5, 660, .3);
+  K.piron(DURATION - .55, .4);
+
+  const buf = await ctx.startRendering();
+  const Lc = buf.getChannelData(0), Rc = buf.getChannelData(1);
+  let peak = 0; for (let i = 0; i < Lc.length; i++) peak = Math.max(peak, Math.abs(Lc[i]), Math.abs(Rc[i]));
+  const norm = peak > 0 ? Math.pow(10, -1 / 20) / peak : 1;
+  const pcm = new Int16Array(Lc.length * 2);
+  for (let i = 0; i < Lc.length; i++) { pcm[2 * i] = Math.max(-32768, Math.min(32767, Math.round(Lc[i] * norm * 32767))); pcm[2 * i + 1] = Math.max(-32768, Math.min(32767, Math.round(Rc[i] * norm * 32767))); }
+  const bytes = new Uint8Array(pcm.buffer); let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return { sampleRate: SR, channels: 2, peakBefore: peak, pcm16: btoa(bin) };
+};
+</script>
+</body>
+</html>
