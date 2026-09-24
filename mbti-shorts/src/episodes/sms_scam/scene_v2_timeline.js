@@ -9,10 +9,11 @@ const P_UP = Object.assign({}, P.point, { shR: 142, elR: -8, head: -10, torso: -
 const P_REACH = Object.assign({}, P.point, { shR: 44, elR: 22, torso: 10, head: 10 });
 const P_AT = Object.assign({}, P.point, { shR: 56, elR: -4, head: 4 });
 
-// ナレーション字幕 (行の開始〜終了+0.3秒)
+// ナレーション字幕: 音声に対する字幕は出さない (SHOW_NARR=true で復活。行の開始〜終了+0.3秒)
+window.SHOW_NARR = false;
 function drawNarr(T) {
   const el = $('narr');
-  const cur = window.__noNarr ? null : NARR.find(x => T >= x.s - 0.05 && T < x.e + 0.3);
+  const cur = (!window.SHOW_NARR || window.__noNarr) ? null : NARR.find(x => T >= x.s - 0.05 && T < x.e + 0.3);
   el.textContent = cur ? cur.t : '';
   el.style.display = cur ? '' : 'none';
   $('subs').style.display = 'none';
