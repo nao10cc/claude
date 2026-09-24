@@ -1,16 +1,25 @@
-# MBTI ショートドラマ・アニメーション
+# コード描画ショートアニメ・スタジオ
 
-MBTI 16タイプを1タイプずつ縦型ショートアニメ（1080×1920 / 24fps / 約48秒）にするプロジェクト。
-第1弾は **INTJ「INTJの友達に失恋相談した結果」**。
+台本・キャラ・背景・BGM・効果音まで **すべてコードで生成** し、1コマずつ描いて MP4 にする縦型ショートアニメ（1080×1920 / 24fps）のプロジェクト。
 
-| 成果物 | パス |
-|---|---|
-| 完成動画 (MP4 / H.264 + AAC, スマホ再生可) | `output/INTJ/INTJ_short.mp4` |
-| 音声のみ (BGM+SE, 48kHz WAV) | `output/INTJ/INTJ_audio.wav` ※ `render_audio.js` で8秒で再生成 |
-| 絵コンテ（代表13コマ） | `output/INTJ/storyboard/` |
-| 台本・タイムライン | `scripts/INTJ_script.md` |
-| バズ調査メモ | `research/INTJ_viral_research.md` |
-| AI画像生成に差し替える場合のプロンプト集 | `docs/ai_image_prompts.md` |
+| エピソード | 様式 | 尺 | 成果物 |
+|---|---|---|---|
+| **#2 教養ドラマ「不在通知SMSを押した3分後」** | Vyond 風 2D パペット（関節リグ） | 78秒 | `output/SMS_SCAM/SMS_SCAM_short.mp4` / 絵コンテ `output/SMS_SCAM/storyboard/` / 台本 `scripts/SMS_SCAM_script.md` |
+| #1 MBTI「INTJの友達に失恋相談した結果」 | ゆるキャラ SVG | 48秒 | `output/INTJ/INTJ_short.mp4` / 絵コンテ `output/INTJ/storyboard/` / 台本 `scripts/INTJ_script.md` / 調査 `research/INTJ_viral_research.md` |
+
+どちらも H.264 + AAC のスマホ再生可能な MP4。#2 は音声（セリフ）なしの字幕版で、BGM と約90個の効果音はコード生成。
+
+## Vyond 風リグ（#2 から導入）
+
+`src/rig/rig.js` が Vyond 的な 2D パペットの本体。
+
+- **ポーズ** = 関節角の辞書（胴の傾き・首・肩・肘・股・膝 + 腕の短縮率）。`RIG.P` にライブラリ（立つ / スマホを見る / 電話 / 指す / 肩をすくめる / 頭を抱える / 驚く / うつむく / 腕組み / 歩行 など）
+- **表情** = 目・眉・口・視線・赤面・汗の状態。`RIG.F` にライブラリ、`RIG.face('shock', {lookX: 4})` で上書き
+- **キャラ** = 配色と髪型の定義（`RIG.CHARS`: ユウ / リン / 詐欺師）。同じ骨格を使い回す
+- `RIG.lerpPose(a, b, u)` でポーズ間を補間、シーン側で outBack イージングをかけてカートゥーン的なオーバーシュートを出す。`RIG.walk(phase)` で歩行サイクル
+- テスト: `src/rig/rig_test.html` にポーズ一覧
+
+エピソード本体は `src/episodes/<name>/scene.html`（映像）と `audio.html`（音）。効果音・BGM の部品は `src/lib/sfx.js`。
 
 ## 制作フロー（「1コマずつ生成 → mp4化」・音もコード生成）
 
@@ -42,24 +51,25 @@ tools/build_final.sh   png2yuv.js で RGB→YUV420p(BT.709) 変換 → ffmpeg/li
 ```bash
 export NODE_PATH=/opt/node22/lib/node_modules   # playwright がグローバルにある場合
 
-# 1. 1コマずつレンダリング（約7分 / 4コア）
-node src/render_frames.js --out output/INTJ/frames --fps 24
+# 1. 1コマずつレンダリング（#2: 約12分 / #1: 約7分、4コア）
+node src/render_frames.js --scene src/episodes/sms_scam/scene.html --out output/SMS_SCAM/frames --fps 24
+#   （#1 は --scene を省略）
 
-# 2. 音声を生成（約8秒）
-node src/render_audio.js --out output/INTJ/INTJ_audio.wav
+# 2. 音声を生成（約20秒）
+node src/render_audio.js --src src/episodes/sms_scam/audio.html --out output/SMS_SCAM/SMS_SCAM_audio.wav
 
 # 3. ffmpeg を用意（手元に ffmpeg があれば不要）
 bash tools/build_ffmpeg.sh            # → /tmp/build/prefix/bin/ffmpeg
 
 # 4. MP4 化（映像 H.264 約4分 + 音声多重化 数秒。音だけ直したら --video 無しで再実行）
-FFMPEG=/tmp/build/prefix/bin/ffmpeg bash tools/build_final.sh INTJ 24 --video
+FFMPEG=/tmp/build/prefix/bin/ffmpeg bash tools/build_final.sh SMS_SCAM 24 --video   # #1 は INTJ
 
 # （ffmpeg が無い場合の予備: VP9 で MP4 化・Chromium で検証）
 node src/encode_mp4.js --frames output/INTJ/frames --fps 24 --out output/INTJ/INTJ_short_vp9.mp4
 node src/verify_mp4.js --in output/INTJ/INTJ_short_vp9.mp4 --times 1,13,33,41
 
 # 特定の秒だけプレビュー
-node src/render_frames.js --preview 4.2,13.2,36.5 --out /tmp/preview
+node src/render_frames.js --scene src/episodes/sms_scam/scene.html --preview 3,31,50 --out /tmp/preview
 
 # ブラウザでリアルタイム再生
 #   src/scene.html?play=1     （静止: ?t=13.2）
@@ -83,12 +93,12 @@ window.renderAudio({ drums: 0, keys: 0, bass: 0, crackle: 0 })   // SE のみ
 
 ## 投稿メモ
 
-- タイトル案: 「INTJの友達に失恋相談した結果」
+### #2 不在通知SMSを押した3分後
+- 60〜90秒の教養ドラマ枠。冒頭2秒で結末（残高0）→ 巻き戻し → 日常 → 一時停止して図解 → 皮肉のオチ → 3行の教訓
+- 固有名はすべて架空（NK EXPRESS / みらい銀行 / nk-express-jp.top）。実在企業・人物は出さない
+- ハッシュタグ: `#詐欺 #フィッシング #宅配 #SMS #知らないと損 #ショートドラマ #アニメ`
+- 音声（セリフ）は別途。字幕だけで成立する設計なので、VOICEVOX 等の WAV を `SUBS` の秒数に置けば口パクと同期する
+
+### #1 INTJの友達に失恋相談した結果
 - ハッシュタグ: `#MBTI #INTJ #INTJあるある #MBTIあるある #ショートドラマ #16personalities #建築家`
 - 固定コメント案: 「あなたのMBTIは？ 次に見たいタイプも教えて」
-- 次回: ENFP（エンドカードで予告済み）
-
-## 16タイプへの展開
-
-- `scene.html` の `SHOTS` / `SUBS` / 各 `shotN()` が台本。キャラは `intjSVG()` / `enfpSVG()` のように状態を受けて描く関数なので、タイプごとに配色（分析家=紫 / 外交官=緑 / 番人=青 / 探検家=黄）と髪型・小物を変えれば量産できる。
-- 構成テンプレは「フック(2s) → 偏見どおりの行動 → 内心 → ギャップ回収 → 決めゼリフ → CTA」。詳細は `research/INTJ_viral_research.md`。

@@ -16,7 +16,8 @@ function arg(name, def) {
   return i >= 0 ? process.argv[i + 1] : def;
 }
 
-const SCENE = path.resolve(__dirname, arg('scene', 'scene.html'));
+const SCENE_ARG = arg('scene', null);
+const SCENE = SCENE_ARG ? path.resolve(process.cwd(), SCENE_ARG) : path.resolve(__dirname, 'scene.html');
 const OUT = path.resolve(process.cwd(), arg('out', 'output/INTJ/frames'));
 const FPS = parseFloat(arg('fps', '24'));
 const PREVIEW = arg('preview', null);

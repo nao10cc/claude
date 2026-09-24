@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><title>rig test</title>
+<style>body{margin:0;background:#EFE6D8;width:1080px;height:1920px;overflow:hidden;font-family:IPAPGothic}
+.c{position:absolute;width:220px;height:440px}
+.l{position:absolute;font-size:28px;color:#333;text-align:center;width:300px}
+</style></head><body>
+<script src="rig.js"></script>
+<script>
+const items = [
+  ['yu','think','think',{}], ['yu','phone','focus',{held:'phone'}], ['yu','phone2','focus',{held:'phone'}],
+  ['yu','facepalm','sad',{}], ['yu','call','panic',{held:'phoneCall'}], ['yu','holdPaper','dead',{held:'paper'}],
+  ['rin','stand','smile',{}], ['rin','point','angry',{}], ['rin','handsHip','smug',{}],
+  ['rin','shrug','think',{}], ['rin','walkA','neutral',{}], ['scammer','phone2','neutral',{}],
+];
+items.forEach(([c,p,f,o],i)=>{
+  const x=(i%3)*340+60, y=Math.floor(i/3)*470+10;
+  const d=document.createElement('div'); d.className='c'; d.style.left=x+'px'; d.style.top=y+'px';
+  d.innerHTML=RIG.character(c, RIG.P[p], RIG.face(f), o); document.body.appendChild(d);
+  const l=document.createElement('div'); l.className='l'; l.style.left=x+'px'; l.style.top=(y+430)+'px'; l.textContent=`${c} / ${p} / ${f}`; document.body.appendChild(l);
+});
+</script></body></html>

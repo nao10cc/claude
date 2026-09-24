@@ -10,7 +10,8 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 function arg(name, def) { const i = process.argv.indexOf('--' + name); return i >= 0 ? process.argv[i + 1] : def; }
-const SRC = path.resolve(__dirname, arg('src', 'audio.html'));
+const SRC_ARG = arg('src', null);
+const SRC = SRC_ARG ? path.resolve(process.cwd(), SRC_ARG) : path.resolve(__dirname, 'audio.html');
 const OUT = path.resolve(process.cwd(), arg('out', 'output/INTJ/INTJ_audio.wav'));
 
 function wavHeader(dataLen, sampleRate, channels) {

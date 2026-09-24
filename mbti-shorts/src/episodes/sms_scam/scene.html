@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>不在通知SMSを押した3分後</title>
+<style>
+  :root { --ink:#22242E; --yellow:#FFD84D; --red:#E5484D; --green:#3BB273; --teal:#2FA4A9; --navy:#1E2A44; --s:1; }
+  html, body { margin:0; padding:0; background:#000; }
+  body { width:1080px; height:1920px; overflow:hidden; font-family:"IPAPGothic","IPAGothic","WenQuanYi Zen Hei","Noto Color Emoji",sans-serif; }
+  #stage { position:relative; width:1080px; height:1920px; overflow:hidden; background:#111; }
+  #cam { position:absolute; inset:0; transform-origin:540px 960px; }
+  .hide { display:none !important; }
+  .abs { position:absolute; }
+
+  /* ---- 部屋 ---- */
+  #room { position:absolute; inset:0; }
+  #wall { position:absolute; inset:0; background:linear-gradient(180deg,#F3E7D3 0%,#EBDCC4 70%,#E2D1B6 100%); }
+  #room.night #wall { background:linear-gradient(180deg,#3C3F5E 0%,#4B4E70 60%,#565979 100%); }
+  #wall::after { content:""; position:absolute; left:0; right:0; top:0; height:1240px; background:repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0 3px, transparent 3px 140px); }
+  #floor { position:absolute; left:0; top:1240px; width:1080px; height:680px; background:linear-gradient(180deg,#A3785A 0%,#8C6547 100%); }
+  #room.night #floor { background:linear-gradient(180deg,#5B4433 0%,#4A3628 100%); }
+  #floor::before { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(0,0,0,.08) 0 3px, transparent 3px 160px); }
+  #rug { position:absolute; left:100px; top:1420px; width:880px; height:360px; border-radius:40px; background:#C96B5A; box-shadow:inset 0 0 0 20px #B85A4A; }
+  #room.night #rug { background:#8E4B40; box-shadow:inset 0 0 0 20px #7A3F36; }
+  #sofa { position:absolute; left:120px; top:1170px; width:860px; height:320px; }
+  #sofa .back { position:absolute; left:0; top:0; width:860px; height:200px; border-radius:40px 40px 10px 10px; background:#5C8EC9; }
+  #sofa .arm { position:absolute; top:120px; width:90px; height:200px; border-radius:30px; background:#4C7BB3; }
+  #sofa .arm.l { left:-20px; } #sofa .arm.r { right:-20px; }
+  #sofaFront { position:absolute; left:120px; top:1330px; width:860px; height:170px; }
+  #sofaFront .seat { position:absolute; left:40px; right:40px; top:0; height:110px; border-radius:24px; background:#6C9ED9; box-shadow:inset 0 -18px 0 rgba(0,0,0,.12); }
+  #sofaFront .base { position:absolute; left:20px; right:20px; top:100px; height:70px; border-radius:0 0 26px 26px; background:#4C7BB3; }
+  #sofaFront .leg { position:absolute; top:168px; width:30px; height:40px; background:#3A2A22; }
+  #room.night #sofa .back, #room.night #sofaFront .seat { filter:brightness(.72); }
+  #room.night #sofa .arm, #room.night #sofaFront .base { filter:brightness(.72); }
+  #ctable { position:absolute; left:300px; top:1560px; width:480px; height:70px; border-radius:20px; background:#D9B98A; box-shadow:0 30px 0 #B9975F; }
+  #ctable::before, #ctable::after { content:""; position:absolute; top:90px; width:26px; height:90px; background:#9C7A4C; }
+  #ctable::before { left:40px; } #ctable::after { right:40px; }
+  #room.night #ctable { filter:brightness(.7); }
+  #window { position:absolute; left:120px; top:260px; width:420px; height:520px; border-radius:16px; background:#F7F1E6; box-shadow:0 0 0 14px #FBF7EF; overflow:hidden; }
+  #window .sky { position:absolute; inset:14px; border-radius:8px; background:linear-gradient(180deg,#8FD0FF 0%,#DDF1FF 100%); }
+  #room.night #window .sky { background:linear-gradient(180deg,#12173A 0%,#2B3670 100%); }
+  #window .moon { position:absolute; left:250px; top:80px; width:80px; height:80px; border-radius:50%; background:#FFF1B8; display:none; }
+  #room.night #window .moon { display:block; }
+  #window .bar { position:absolute; background:#F7F1E6; }
+  #window .city { position:absolute; left:14px; right:14px; bottom:14px; height:160px; background:
+      linear-gradient(90deg, #26305A 0 60px, transparent 60px 80px, #1F2950 80px 150px, transparent 150px 165px, #2A3460 165px 230px, transparent 230px 250px, #1F2950 250px 330px, transparent 330px 345px, #26305A 345px 400px);
+      opacity:0; }
+  #room.night #window .city { opacity:1; }
+  #lamp { position:absolute; left:860px; top:700px; width:140px; height:560px; }
+  #lamp .shade { position:absolute; left:0; top:0; width:140px; height:110px; background:#F2C75C; clip-path:polygon(25% 0, 75% 0, 100% 100%, 0 100%); }
+  #lamp .pole { position:absolute; left:64px; top:110px; width:12px; height:420px; background:#6B5B4E; }
+  #lamp .foot { position:absolute; left:20px; top:520px; width:100px; height:30px; border-radius:50%; background:#6B5B4E; }
+  #lamp .glow { position:absolute; left:-160px; top:60px; width:460px; height:700px; border-radius:50%; background:radial-gradient(ellipse at 50% 20%, rgba(255,220,140,.45), transparent 65%); display:none; }
+  #room.night #lamp .glow { display:block; }
+  #plant { position:absolute; left:20px; top:900px; width:160px; height:360px; }
+  #plant .pot { position:absolute; left:30px; top:240px; width:100px; height:110px; border-radius:10px 10px 30px 30px; background:#C0704F; }
+  #plant .leaf { position:absolute; width:60px; height:200px; border-radius:50%; background:#4FAE6C; transform-origin:50% 100%; left:50px; top:60px; }
+  #frame1 { position:absolute; left:640px; top:340px; width:170px; height:220px; background:#FFF; border:14px solid #7A5A44; box-sizing:border-box; }
+  #frame1::after { content:""; position:absolute; inset:14px; background:linear-gradient(160deg,#F7B267 0 45%,#5C8EC9 45% 100%); }
+  #frame2 { position:absolute; left:640px; top:600px; width:170px; height:130px; background:#FFF; border:12px solid #7A5A44; box-sizing:border-box; }
+  #frame2::after { content:""; position:absolute; inset:12px; background:radial-gradient(circle at 40% 50%, #4FAE6C 0 26%, #EBDCC4 27%); }
+  #door { position:absolute; left:900px; top:520px; width:200px; height:760px; background:#8D6B4E; border:16px solid #6B4E36; box-sizing:border-box; border-bottom:none; }
+  #door::before { content:""; position:absolute; left:26px; top:40px; right:26px; height:280px; border:8px solid #74563D; }
+  #door::after { content:""; position:absolute; left:26px; top:360px; right:26px; height:320px; border:8px solid #74563D; }
+  #door .knob { position:absolute; left:14px; top:380px; width:26px; height:26px; border-radius:50%; background:#E2B23A; }
+  #room.night #door { filter:brightness(.7); }
+  #paperSlip { position:absolute; left:900px; top:1250px; width:150px; height:100px; background:#FFF8E6; border:3px solid #D8CDB4; box-sizing:border-box; transform-origin:50% 50%; }
+  #paperSlip::before { content:"ご不在連絡票"; position:absolute; left:10px; top:8px; font-size:20px; color:#E5484D; }
+  #paperSlip::after { content:""; position:absolute; left:10px; right:10px; top:44px; height:6px; background:#C9C1AE; box-shadow:0 16px 0 #C9C1AE, 0 32px 0 #C9C1AE; }
+
+  .chara { position:absolute; width:440px; height:880px; transform-origin:50% 0; }
+  .chara svg { width:100%; height:100%; overflow:visible; }
+  #phoneGlow { position:absolute; width:260px; height:260px; border-radius:50%; background:radial-gradient(circle, rgba(200,235,255,.55), transparent 65%); pointer-events:none; }
+
+  /* ---- 通知バナー ---- */
+  .banner { position:absolute; left:50px; top:-300px; width:980px; border-radius:36px; background:rgba(28,30,40,.94); color:#fff; padding:28px 34px; box-sizing:border-box; box-shadow:0 20px 50px rgba(0,0,0,.45); display:flex; gap:26px; align-items:flex-start; }
+  .banner .icon { flex:none; width:96px; height:96px; border-radius:24px; display:flex; align-items:center; justify-content:center; font-size:52px; }
+  .banner .app { font-size:32px; color:#B9BDD1; letter-spacing:.04em; }
+  .banner .ttl { font-size:40px; margin-top:4px; }
+  .banner .body { font-size:36px; line-height:1.3; margin-top:8px; color:#EDEFF7; }
+  .banner .body .link { color:#7FB8FF; text-decoration:underline; }
+  .banner .body .code { color:var(--yellow); font-size:44px; letter-spacing:.08em; }
+  .banner .time { position:absolute; right:34px; top:30px; font-size:28px; color:#B9BDD1; }
+
+  /* ---- スマホ全画面 ---- */
+  #phone { position:absolute; left:80px; top:150px; width:920px; height:1620px; border-radius:90px; background:#1B1D26; box-shadow:0 40px 90px rgba(0,0,0,.6); transform-origin:50% 50%; }
+  #phone .screen { position:absolute; inset:26px; border-radius:66px; background:#F5F6FA; overflow:hidden; }
+  #phone .notch { position:absolute; left:50%; top:26px; width:280px; height:56px; transform:translateX(-50%); background:#1B1D26; border-radius:0 0 40px 40px; z-index:5; }
+  #phone .status { position:absolute; left:0; right:0; top:0; height:110px; display:flex; justify-content:space-between; align-items:center; padding:0 50px; font-size:34px; color:#222; }
+  .ph-header { position:absolute; left:0; right:0; top:110px; height:150px; border-bottom:2px solid #E1E3EC; display:flex; align-items:center; gap:20px; padding:0 40px; box-sizing:border-box; background:#FFF; }
+  .ph-header .av { width:92px; height:92px; border-radius:50%; background:#C8CCDD; display:flex; align-items:center; justify-content:center; font-size:46px; color:#fff; }
+  .ph-header .name { font-size:42px; color:#222; }
+  .ph-header .sub { font-size:26px; color:#8A8FA3; margin-top:2px; }
+  .sms-bubble { position:absolute; left:40px; top:330px; width:720px; background:#E9EBF2; border-radius:40px 40px 40px 12px; padding:34px 40px; box-sizing:border-box; font-size:40px; line-height:1.4; color:#222; }
+  .sms-bubble .link { color:#2C6BE0; text-decoration:underline; word-break:break-all; }
+  .sms-bubble .link.hot { background:#CFE0FF; border-radius:8px; }
+  .sms-time { position:absolute; left:50px; top:290px; font-size:26px; color:#8A8FA3; }
+  .cursor { position:absolute; width:90px; height:90px; border-radius:50%; background:rgba(60,80,120,.35); border:4px solid rgba(255,255,255,.9); transform:translate(-50%,-50%) scale(var(--s)); box-shadow:0 8px 20px rgba(0,0,0,.25); }
+  .ripple { position:absolute; width:90px; height:90px; border-radius:50%; border:6px solid rgba(44,107,224,.7); transform:translate(-50%,-50%) scale(var(--s)); opacity:.8; }
+  .loadbar { position:absolute; left:0; top:108px; height:8px; background:#2C6BE0; }
+  /* 偽サイト */
+  .urlbar { position:absolute; left:40px; right:40px; top:120px; height:80px; border-radius:40px; background:#E9EBF2; display:flex; align-items:center; gap:16px; padding:0 30px; box-sizing:border-box; font-size:30px; color:#444; }
+  .urlbar .lock { color:#3BB273; }
+  .site-header { position:absolute; left:0; right:0; top:220px; height:130px; background:var(--navy); color:#fff; display:flex; align-items:center; gap:22px; padding:0 40px; box-sizing:border-box; }
+  .site-header .logo { width:80px; height:80px; border-radius:16px; background:var(--teal); display:flex; align-items:center; justify-content:center; font-size:38px; letter-spacing:-.04em; }
+  .site-header .brand { font-size:40px; letter-spacing:.06em; }
+  .site-header .brand small { display:block; font-size:24px; color:#C7D2EA; letter-spacing:.1em; }
+  .site-body { position:absolute; left:40px; right:40px; top:390px; }
+  .site-body h2 { font-size:40px; margin:0 0 10px; color:#222; }
+  .site-body p { font-size:30px; color:#666; margin:0 0 30px; line-height:1.4; }
+  .field { margin-bottom:26px; }
+  .field label { display:block; font-size:30px; color:#444; margin-bottom:10px; }
+  .field .box { height:96px; border:3px solid #C8CCDD; border-radius:16px; background:#fff; font-size:40px; line-height:96px; padding:0 26px; color:#222; letter-spacing:.06em; position:relative; }
+  .field .box.focus { border-color:#2C6BE0; box-shadow:0 0 0 4px rgba(44,107,224,.18); }
+  .field .box .caret { display:inline-block; width:3px; height:48px; background:#222; vertical-align:middle; margin-left:4px; }
+  .field .box.code { font-size:56px; letter-spacing:.35em; text-align:center; }
+  .btn { height:110px; border-radius:20px; background:var(--teal); color:#fff; font-size:40px; display:flex; align-items:center; justify-content:center; margin-top:10px; transform:scale(var(--s)); }
+  .btn.pressed { filter:brightness(.8); }
+  .toast { position:absolute; left:50%; bottom:120px; transform:translateX(-50%); background:#333; color:#fff; font-size:32px; padding:20px 40px; border-radius:40px; white-space:nowrap; }
+  .spinner { position:absolute; left:50%; top:50%; width:120px; height:120px; margin:-60px 0 0 -60px; border-radius:50%; border:12px solid #E1E3EC; border-top-color:var(--teal); }
+  .proc { position:absolute; left:0; right:0; top:58%; text-align:center; font-size:40px; color:#444; }
+  .warn { color:var(--red); font-size:28px; margin-top:-16px; margin-bottom:28px; }
+
+  /* ---- 詐欺師の部屋 ---- */
+  #scamRoom { position:absolute; inset:0; background:radial-gradient(ellipse at 50% 35%, #1B2238 0%, #0B0D16 70%); }
+  #monitor { position:absolute; left:120px; top:760px; width:840px; height:500px; background:#0F1420; border:18px solid #2A2F3E; border-radius:20px; box-sizing:border-box; padding:36px 44px; color:#7CFF9E; font-family:"Liberation Mono","DejaVu Sans Mono","IPAGothic",monospace; font-size:34px; line-height:1.55; overflow:hidden; box-shadow:0 0 120px rgba(80,200,255,.25); }
+  #monitor .ok { color:#7CFF9E; } #monitor .y { color:#FFD84D; } #monitor .r { color:#FF6B6B; } #monitor .dim { color:#6E7A96; }
+  #monitor .exec { display:inline-block; margin-top:14px; padding:10px 34px; border:3px solid #FF6B6B; color:#FF6B6B; border-radius:10px; }
+  #monitor .exec.on { background:#FF6B6B; color:#0F1420; }
+  #monitor .caret { display:inline-block; width:18px; height:34px; background:#7CFF9E; vertical-align:middle; }
+  #deskTop { position:absolute; left:60px; top:1240px; width:960px; height:60px; background:#2A2230; border-radius:8px; }
+  #scamGlow { position:absolute; left:60px; top:520px; width:960px; height:900px; background:radial-gradient(ellipse at 50% 40%, rgba(120,220,255,.18), transparent 60%); }
+
+  /* ---- 一時停止 + 図解 ---- */
+  #pauseDim { position:absolute; inset:0; background:rgba(10,12,24,.82); }
+  #pauseIcon { position:absolute; left:50%; top:130px; transform:translateX(-50%) scale(var(--s)); color:#fff; font-size:70px; letter-spacing:.2em; -webkit-text-stroke:0; }
+  #pauseIcon i { display:inline-block; width:26px; height:70px; background:#fff; margin:0 8px; vertical-align:middle; }
+  #dgTitle { position:absolute; left:50%; top:250px; transform:translate(-50%,-50%) scale(var(--s)); color:#fff; font-size:72px; white-space:nowrap; letter-spacing:.06em; }
+  #diagram { position:absolute; left:50px; top:300px; width:980px; height:1080px; }
+  .node { position:absolute; width:300px; height:300px; border-radius:40px; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; transform:translate(-50%,-50%) scale(var(--s)); box-shadow:0 20px 40px rgba(0,0,0,.4); }
+  .node .ic { font-size:110px; line-height:1; }
+  .node .nm { font-size:36px; color:#222; }
+  .node.bad { background:#2A2F3E; } .node.bad .nm { color:#fff; }
+  .node.shake { animation:none; }
+  #dgSvg { position:absolute; inset:0; overflow:visible; }
+  .lbl { position:absolute; transform:translate(-50%,-50%) scale(var(--s)); background:var(--yellow); color:#222; font-size:32px; padding:8px 22px; border-radius:30px; white-space:nowrap; }
+  .lbl.red { background:var(--red); color:#fff; } .lbl.green { background:var(--green); color:#fff; } .lbl.blue { background:#7FB8FF; }
+  #dgCap { position:absolute; left:40px; right:40px; top:1360px; color:#fff; font-size:42px; line-height:1.5; text-align:center; }
+  #dgCap b { color:var(--yellow); }
+  #dgCap .step { display:inline-block; background:#fff; color:#222; border-radius:50%; width:64px; height:64px; line-height:64px; font-size:40px; margin-right:14px; vertical-align:middle; }
+  #zeroBadge { position:absolute; transform:translate(-50%,-50%) scale(var(--s)); background:var(--red); color:#fff; font-size:40px; padding:10px 26px; border-radius:16px; white-space:nowrap; box-shadow:0 10px 30px rgba(0,0,0,.4); }
+  .punch { position:absolute; left:50%; width:1020px; text-align:center; color:#fff; white-space:nowrap; transform:translate(-50%,-50%) scale(var(--s)); -webkit-text-stroke:14px #12162A; paint-order:stroke fill; }
+  .punch.l1 { font-size:74px; } .punch.l2 { font-size:96px; color:var(--yellow); }
+
+  /* ---- 汎用テキスト ---- */
+  .bubble { position:absolute; background:#fff; color:var(--ink); border-radius:40px; padding:24px 40px; font-size:50px; line-height:1.3; white-space:nowrap; transform-origin:50% 100%; transform:translate(-50%,-100%) scale(var(--s)); box-shadow:0 12px 0 rgba(0,0,0,.15); }
+  .bubble::after { content:""; position:absolute; left:50%; bottom:-28px; width:36px; height:36px; background:#fff; transform:translateX(-50%) rotate(45deg); }
+  .bubble.tl::after { left:28%; } .bubble.tr::after { left:72%; }
+  .telop { position:absolute; left:50%; color:var(--red); border:8px solid var(--red); border-radius:14px; padding:10px 30px; font-size:52px; letter-spacing:.06em; background:rgba(255,255,255,.94); transform-origin:50% 50%; transform:translate(-50%,-50%) rotate(-6deg) scale(var(--s)); white-space:nowrap; }
+  .telop.blue { color:#2C6BE0; border-color:#2C6BE0; } .telop.green { color:var(--green); border-color:var(--green); }
+  #subs { position:absolute; left:50%; top:1610px; width:1000px; transform:translateX(-50%); text-align:center; font-size:64px; line-height:1.3; color:#fff; -webkit-text-stroke:14px #111; paint-order:stroke fill; text-shadow:0 6px 0 rgba(0,0,0,.35); }
+  #subs.yu { color:#FFE066; } #subs.rin { color:#9FE0FF; } #subs.mono { color:#fff; font-size:54px; }
+
+  .card { position:absolute; inset:0; background:linear-gradient(160deg,#101828 0%,#1E2A44 60%,#2FA4A9 140%); }
+  .tline { position:absolute; left:50%; width:1020px; text-align:center; color:#fff; white-space:nowrap; transform:translate(-50%,-50%) scale(var(--s)); transform-origin:50% 50%; -webkit-text-stroke:10px #0B1020; paint-order:stroke fill; }
+  .tline.big { font-size:150px; color:var(--yellow); } .tline.mid { font-size:92px; } .tline.sm { font-size:52px; -webkit-text-stroke:8px #0B1020; color:#C7D2EA; }
+  #hookCard { position:absolute; left:90px; top:760px; width:900px; border-radius:44px; background:#fff; padding:40px 46px; box-sizing:border-box; transform-origin:50% 50%; transform:scale(var(--s)); box-shadow:0 30px 80px rgba(0,0,0,.6); display:flex; gap:28px; align-items:flex-start; }
+  #hookCard .icon { flex:none; width:110px; height:110px; border-radius:26px; background:#2C6BE0; color:#fff; font-size:56px; display:flex; align-items:center; justify-content:center; }
+  #hookCard .app { font-size:34px; color:#666; } #hookCard .t1 { font-size:44px; color:#222; margin-top:6px; } #hookCard .t2 { font-size:64px; color:var(--red); margin-top:10px; letter-spacing:.02em; }
+  #scan { position:absolute; inset:0; background:repeating-linear-gradient(180deg, rgba(255,255,255,.08) 0 4px, transparent 4px 10px); mix-blend-mode:screen; }
+  #rewindTxt { position:absolute; left:50%; top:1180px; transform:translate(-50%,-50%) scale(var(--s)); color:#fff; font-size:110px; white-space:nowrap; -webkit-text-stroke:10px #000; paint-order:stroke fill; }
+  #urlCard { position:absolute; left:60px; top:240px; width:960px; border-radius:40px; background:#fff; padding:40px 44px; box-sizing:border-box; transform-origin:50% 50%; transform:scale(var(--s)); box-shadow:0 30px 60px rgba(0,0,0,.45); }
+  #urlCard .row { display:flex; align-items:center; gap:24px; font-size:50px; font-family:"Liberation Mono","DejaVu Sans Mono",monospace; color:#222; padding:18px 10px; }
+  #urlCard .row .mk { flex:none; width:70px; height:70px; border-radius:50%; color:#fff; font-size:44px; display:flex; align-items:center; justify-content:center; font-family:IPAPGothic; }
+  #urlCard .row.bad .mk { background:var(--red); } #urlCard .row.good .mk { background:var(--green); }
+  #urlCard .row .hl { background:#FFD1D1; border-radius:8px; padding:0 4px; }
+  #urlCard .note { font-size:34px; color:#666; padding:6px 10px 0 104px; font-family:IPAPGothic; }
+  #checklist { position:absolute; left:80px; top:260px; width:920px; border-radius:36px; background:rgba(255,255,255,.96); padding:34px 44px; box-sizing:border-box; transform-origin:50% 50%; transform:scale(var(--s)); box-shadow:0 30px 60px rgba(0,0,0,.4); }
+  #checklist .h { font-size:36px; color:#666; margin-bottom:12px; }
+  #checklist .it { font-size:44px; color:#222; padding:12px 0; display:flex; gap:20px; align-items:center; }
+  #checklist .it .bx { flex:none; width:52px; height:52px; border-radius:12px; border:5px solid #222; position:relative; box-sizing:border-box; }
+  #checklist .it .bx.on::after { content:""; position:absolute; left:14px; top:-6px; width:16px; height:34px; border-right:8px solid var(--green); border-bottom:8px solid var(--green); transform:rotate(45deg); }
+  #checklist .foot { font-size:34px; color:var(--red); margin-top:14px; }
+  #dayCard { position:absolute; inset:0; background:#0B0D16; color:#fff; font-size:110px; display:flex; align-items:center; justify-content:center; letter-spacing:.2em; }
+  #vignette { position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at 50% 50%, transparent 58%, rgba(0,0,0,.3) 100%); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="cam">
+    <div id="room" class="night">
+      <div id="wall"></div>
+      <div id="window"><div class="sky"></div><div class="moon"></div><div class="city"></div><div class="bar" style="left:204px;top:0;width:12px;height:520px"></div><div class="bar" style="left:0;top:254px;width:420px;height:12px"></div></div>
+      <div id="frame1"></div><div id="frame2"></div>
+      <div id="door"><div class="knob"></div></div>
+      <div id="lamp"><div class="glow"></div><div class="shade"></div><div class="pole"></div><div class="foot"></div></div>
+      <div id="plant"><div class="leaf" style="transform:rotate(-30deg)"></div><div class="leaf" style="transform:rotate(0deg)"></div><div class="leaf" style="transform:rotate(30deg)"></div><div class="pot"></div></div>
+      <div id="floor"></div><div id="rug"></div>
+      <div id="sofa"><div class="back"></div><div class="arm l"></div><div class="arm r"></div></div>
+    </div>
+    <div id="paperSlip" class="hide"></div>
+    <div id="rin" class="chara"></div>
+    <div id="yu" class="chara"></div>
+    <div id="phoneGlow" class="hide"></div>
+    <div id="sofaFront"><div class="seat"></div><div class="base"></div><div class="leg" style="left:40px"></div><div class="leg" style="right:40px"></div></div>
+    <div id="ctable"></div>
+
+    <!-- 詐欺師の部屋 -->
+    <div id="scamRoom" class="hide">
+      <div id="scamGlow"></div>
+      <div id="scam" class="chara"></div>
+      <div id="deskTop"></div>
+      <div id="monitor"></div>
+    </div>
+  </div>
+
+  <!-- スマホ全画面 -->
+  <div id="phone" class="hide"><div class="screen"><div class="status"><span>21:04</span><span>▲▲▲ ▮▮▮ 🔋</span></div><div id="phoneContent"></div></div><div class="notch"></div></div>
+
+  <!-- 通知バナー -->
+  <div id="banner" class="banner hide"><div class="icon"></div><div><div class="app"></div><div class="ttl"></div><div class="body"></div></div><div class="time">今</div></div>
+
+  <!-- 一時停止 + 図解 -->
+  <div id="pauseDim" class="hide"></div>
+  <div id="pauseIcon" class="hide"><i></i><i></i></div>
+  <div id="dgTitle" class="hide">何が起きたのか</div>
+  <div id="diagram" class="hide">
+    <svg id="dgSvg" viewBox="0 0 980 1080" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker>
+      </defs>
+      <path id="a1" d="M330 200 H650" stroke="#FFD84D" stroke-width="14" fill="none" stroke-linecap="round" marker-end="url(#ah)"/>
+      <path id="a2" d="M760 350 Q760 600 560 720" stroke="#FF6B6B" stroke-width="14" fill="none" stroke-linecap="round" marker-end="url(#ah)"/>
+      <path id="a2b" d="M420 720 Q220 600 220 350" stroke="#3BB273" stroke-width="14" fill="none" stroke-linecap="round" stroke-dasharray="26 18" marker-end="url(#ah)"/>
+      <path id="a3" d="M330 260 H650" stroke="#E5484D" stroke-width="16" fill="none" stroke-linecap="round" marker-end="url(#ah)"/>
+      <path id="a3b" d="M820 350 Q860 640 600 760" stroke="#E5484D" stroke-width="22" fill="none" stroke-linecap="round" marker-end="url(#ah)"/>
+    </svg>
+    <div class="node" id="nYu" style="left:180px;top:200px"><div class="ic">📱</div><div class="nm">ユウ</div></div>
+    <div class="node bad" id="nSc" style="left:800px;top:200px"><div class="ic">🕵️</div><div class="nm">詐欺師(偽サイト)</div></div>
+    <div class="node" id="nBk" style="left:490px;top:840px"><div class="ic">🏦</div><div class="nm">みらい銀行</div></div>
+    <div class="lbl" id="l1" style="left:490px;top:140px">電話番号・生年月日</div>
+    <div class="lbl red" id="l2" style="left:800px;top:560px">なりすましてログイン試行</div>
+    <div class="lbl green" id="l2b" style="left:170px;top:560px">本人へ認証コードSMS</div>
+    <div class="lbl red" id="l3" style="left:490px;top:320px">コード 483920 を入力</div>
+    <div class="lbl red" id="l3b" style="left:790px;top:680px">送金 ¥298,000</div>
+    <div id="zeroBadge" style="left:330px;top:985px">残高 ¥0</div>
+  </div>
+  <div id="dgCap" class="hide"></div>
+  <div id="p1" class="punch l1 hide">認証コードは"本人確認"ではなく</div>
+  <div id="p2" class="punch l2 hide">あなたの口座の"鍵"</div>
+
+  <!-- タイトル・フック -->
+  <div id="hook" class="hide" style="position:absolute;inset:0;background:#0B0D16">
+    <div id="hookCard"><div class="icon">🏦</div><div><div class="app">みらい銀行</div><div class="t1">¥298,000 の送金が完了しました</div><div class="t2">残高 ¥0</div></div></div>
+    <div id="scan" class="hide"></div>
+    <div id="rewindTxt" class="hide">◀◀ 3分前</div>
+  </div>
+  <div id="title" class="card hide">
+    <div id="t1" class="tline mid" style="top:800px">不在通知SMSを押した</div>
+    <div id="t2" class="tline big" style="top:960px">3分後</div>
+    <div id="t3" class="tline sm" style="top:1120px">口座が空になった話</div>
+  </div>
+
+  <!-- 吹き出し / テロップ -->
+  <div id="b_yu1" class="bubble tl hide">あ、頼んでたイヤホンかな</div>
+  <div id="b_rin1" class="bubble tr hide">何やってんの</div>
+  <div id="b_yu2" class="bubble tl hide">再配達の手続きー</div>
+  <div id="b_yu3" class="bubble tl hide">え？</div>
+  <div id="b_rin2" class="bubble tr hide">URL、見て</div>
+  <div id="b_rin3" class="bubble tr hide">宅配業者はSMSで<br>URL送らないよ</div>
+  <div id="b_yu4" class="bubble tl hide">カードと口座、止めてください！</div>
+  <div id="b_yu5" class="bubble tl hide">…本物は、紙で来た。</div>
+  <div id="tl1" class="telop green hide">押す前に、公式アプリ</div>
+  <div id="tl2" class="telop blue hide">すぐ動けば止まることもある</div>
+
+  <div id="urlCard" class="hide">
+    <div class="row bad"><div class="mk">✕</div><div>nk-express<span class="hl">-jp</span>.<span class="hl">top</span></div></div>
+    <div class="note">余計な "-jp"、見慣れない ".top"</div>
+    <div class="row good" style="margin-top:20px"><div class="mk">✓</div><div>nk-express.co.jp</div></div>
+    <div class="note">公式アプリ・公式サイトの追跡番号で確認</div>
+  </div>
+  <div id="checklist" class="hide">
+    <div class="h">もし押してしまったら</div>
+    <div class="it" id="c1"><div class="bx"></div>銀行・カード会社に連絡 → 利用停止</div>
+    <div class="it" id="c2"><div class="bx"></div>パスワードを変更</div>
+    <div class="it" id="c3"><div class="bx"></div>警察相談専用電話 #9110</div>
+    <div class="foot">※ SMSは消さずに保存（証拠になる）</div>
+  </div>
+  <div id="dayCard" class="hide">翌日</div>
+
+  <div id="end" class="card hide">
+    <div id="e0" class="tline sm" style="top:560px">今日の3行</div>
+    <div id="e1" class="tline mid" style="top:760px">SMSのURLは押さない</div>
+    <div id="e2" class="tline mid" style="top:920px; font-size:78px">認証コードは誰にも入力しない</div>
+    <div id="e3" class="tline mid" style="top:1080px">荷物は公式アプリで確認</div>
+    <div id="e4" class="tline sm" style="top:1380px; color:#FFD84D">家族にも送ってあげてください</div>
+  </div>
+
+  <div id="subs"></div>
+  <div id="vignette"></div>
+</div>
+
+<script src="../../rig/rig.js"></script>
+<script>
+// ===================== ユーティリティ =====================
+const $ = id => document.getElementById(id);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, u) => a + (b - a) * u;
+const E = {
+  lin: u => u, outCubic: u => 1 - Math.pow(1 - u, 3), inOutCubic: u => u < .5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2,
+  outBack: u => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2); },
+  outBounce: u => { const n1 = 7.5625, d1 = 2.75; if (u < 1 / d1) return n1 * u * u; if (u < 2 / d1) return n1 * (u -= 1.5 / d1) * u + .75; if (u < 2.5 / d1) return n1 * (u -= 2.25 / d1) * u + .9375; return n1 * (u -= 2.625 / d1) * u + .984375; },
+};
+function tw(t, t0, t1, a, b, e = E.outCubic) { return lerp(a, b, e(clamp((t - t0) / (t1 - t0), 0, 1))); }
+function show(el, on) { el.classList.toggle('hide', !on); }
+function pop(el, t, t0, d = .35, t1 = Infinity, ease = E.outBack) {
+  if (t < t0 || t >= t1) { show(el, false); return false; }
+  show(el, true); const u = clamp((t - t0) / d, 0, 1);
+  el.style.setProperty('--s', ease(u).toFixed(4)); el.style.opacity = clamp(u * 4, 0, 1); return true;
+}
+function place(el, x, y) { el.style.left = x + 'px'; el.style.top = y + 'px'; }
+const blinkAt = (t, off = 0, period = 3.4) => { const ph = (t + off) % period; return ph < .16 ? Math.sin(ph / .16 * Math.PI) : 0; };
+const talkOpen = t => Math.sin(t * Math.PI * 2 * 5) > 0.1;
+function typed(full, t, t0, cps = 14) { return full.slice(0, t < t0 ? 0 : Math.min(full.length, Math.floor((t - t0) * cps))); }
+// ポーズ補間 (カートゥーン的オーバーシュート)
+function tweenPose(a, b, t, t0, d = .4, ease = E.outBack) { return RIG.lerpPose(a, b, ease(clamp((t - t0) / d, 0, 1))); }
+function poseSeq(t, seq, d = .4) { // seq: [[t0, pose], ...] 時刻でポーズが切り替わる
+  let cur = seq[0][1], prev = seq[0][1], t0 = -1e9;
+  for (const [ts, p] of seq) { if (t >= ts) { prev = cur; cur = p; t0 = ts; } }
+  return tweenPose(prev, cur, t, t0, d);
+}
+function setChara(el, name, pose, face, opts, x, yTop, scale = 1.1, flip = false) {
+  el.innerHTML = RIG.character(name, pose, face, Object.assign({ flip }, opts));
+  el.style.left = (x - 220) + 'px'; el.style.top = yTop + 'px'; el.style.transform = `scale(${scale})`;
+}
+function shake(t, t0, t1, amp = 18) {
+  if (t < t0 || t > t1) return;
+  const u = 1 - (t - t0) / (t1 - t0);
+  $('stage').style.transform = `translate(${(Math.sin(t * 90) * amp * u).toFixed(1)}px, ${(Math.cos(t * 73) * amp * .6 * u).toFixed(1)}px)`;
+}
+function cam(scale, cx, cy) { $('cam').style.transformOrigin = `${cx}px ${cy}px`; $('cam').style.transform = `scale(${scale})`; }
+
+// ===================== 定数 =====================
+const YU = { x: 400, yTopSit: 700, yTopStand: 690 };
+const RIN = { x: 760, yTop: 625 };
+const P = RIG.P, F = RIG.face;
+
+// ===================== 字幕 =====================
+const SUBS = [
+  { from: 5.4, to: 8.0, who: 'yu', text: 'あ、頼んでたイヤホンかな' },
+  { from: 20.3, to: 21.5, who: 'rin', text: '何やってんの' },
+  { from: 21.5, to: 22.5, who: 'yu', text: '再配達の手続きー' },
+  { from: 32.9, to: 33.5, who: 'yu', text: 'え？' },
+  { from: 53.0, to: 55.0, who: 'rin', text: 'URL、見て' },
+  { from: 58.0, to: 60.2, who: 'rin', text: '宅配業者はSMSでURL送らないよ' },
+  { from: 63.9, to: 66.0, who: 'yu', text: 'カードと口座、止めてください！' },
+  { from: 70.5, to: 72.5, who: 'yu', text: '…本物は、紙で来た。' },
+];
+function drawSubs(T) {
+  const el = $('subs'); const s = SUBS.find(x => T >= x.from && T < x.to);
+  el.className = s ? s.who : ''; el.textContent = s ? s.text : ''; el.style.display = s ? '' : 'none';
+}
+
+// ===================== スマホ画面テンプレ =====================
+const SMS_HTML = (hot) => `
+  <div class="ph-header"><div class="av">N</div><div><div class="name">NK EXPRESS</div><div class="sub">SMS/MMS</div></div></div>
+  <div class="sms-time">21:03</div>
+  <div class="sms-bubble">【NK EXPRESS】お荷物をお届けしましたが、ご不在のため持ち帰りました。再配達のお手続きはこちらから<br><span class="link ${hot ? 'hot' : ''}">https://nk-express-jp.top/redelivery?id=48A2</span></div>`;
+const SITE1_HTML = (tel, bd, focus, pressed, toast) => `
+  <div class="urlbar"><span class="lock">🔒</span><span>nk-express-jp.top/redelivery</span></div>
+  <div class="site-header"><div class="logo">NK</div><div class="brand">NK EXPRESS<small>再配達受付</small></div></div>
+  <div class="site-body">
+    <h2>ご本人確認</h2><p>お荷物のお受け取りには、ご本人様確認が必要です。以下をご入力ください。</p>
+    <div class="field"><label>お電話番号</label><div class="box ${focus === 1 ? 'focus' : ''}">${tel}${focus === 1 ? '<span class="caret"></span>' : ''}</div></div>
+    <div class="field"><label>生年月日</label><div class="box ${focus === 2 ? 'focus' : ''}">${bd}${focus === 2 ? '<span class="caret"></span>' : ''}</div></div>
+    <div class="btn ${pressed ? 'pressed' : ''}" id="btn1">認証コードを送信</div>
+  </div>
+  ${toast ? '<div class="toast">認証コードを送信しました</div>' : ''}`;
+const SITE2_HTML = (code, focus, pressed) => `
+  <div class="urlbar"><span class="lock">🔒</span><span>nk-express-jp.top/verify</span></div>
+  <div class="site-header"><div class="logo">NK</div><div class="brand">NK EXPRESS<small>再配達受付</small></div></div>
+  <div class="site-body">
+    <h2>認証コードの入力</h2><p>SMSに届いた6桁の認証コードを入力してください。</p>
+    <div class="field"><div class="box code ${focus ? 'focus' : ''}">${code}${focus ? '<span class="caret"></span>' : ''}</div></div>
+    <div class="warn">※ 有効期限 3分</div>
+    <div class="btn ${pressed ? 'pressed' : ''}" id="btn2">確認</div>
+  </div>`;
+const PROC_HTML = `
+  <div class="urlbar"><span class="lock">🔒</span><span>nk-express-jp.top/verify</span></div>
+  <div class="site-header"><div class="logo">NK</div><div class="brand">NK EXPRESS<small>再配達受付</small></div></div>
+  <div class="spinner"></div><div class="proc">処理中…</div>`;
+let lastPhoneKey = null;
+function phone(html, key) { show($('phone'), true); if (key !== lastPhoneKey) { $('phoneContent').innerHTML = html; lastPhoneKey = key; } }
+function spinner(t) { const sp = $('phoneContent').querySelector('.spinner'); if (sp) sp.style.transform = `rotate(${(t * 360) % 360}deg)`; }
+function banner(t, t0, t1, cfg) {
+  const b = $('banner'); if (t < t0 || t >= t1) { show(b, false); return; }
+  show(b, true);
+  b.querySelector('.icon').textContent = cfg.icon; b.querySelector('.icon').style.background = cfg.color;
+  b.querySelector('.app').textContent = cfg.app; b.querySelector('.ttl').textContent = cfg.title || '';
+  b.querySelector('.body').innerHTML = cfg.body;
+  let y = tw(t, t0, t0 + .5, -320, 90, E.outBack);
+  if (t > t1 - .4) y = tw(t, t1 - .4, t1, 90, -320, E.inOutCubic);
+  b.style.top = y + 'px';
+}
+function cursorAt(x, y, t, t0, tapT, t1) {
+  let c = $('cursor'); if (!c) { c = document.createElement('div'); c.id = 'cursor'; c.className = 'cursor'; $('stage').appendChild(c); }
+  let r = $('ripple'); if (!r) { r = document.createElement('div'); r.id = 'ripple'; r.className = 'ripple'; $('stage').appendChild(r); }
+  if (t < t0 || t >= t1) { show(c, false); show(r, false); return; }
+  show(c, true); place(c, x, y);
+  const press = t >= tapT && t < tapT + .18 ? 1 - Math.abs((t - tapT) / .18 - .5) * 2 : 0;
+  c.style.setProperty('--s', (1 - press * .35).toFixed(3)); c.style.opacity = tw(t, t0, t0 + .25, 0, 1);
+  if (t >= tapT && t < tapT + .6) { show(r, true); place(r, x, y); const u = (t - tapT) / .6; r.style.setProperty('--s', (1 + u * 2.2).toFixed(3)); r.style.opacity = 1 - u; } else show(r, false);
+}
+
+const SMS_BANNER = { icon: 'N', color: '#2FA4A9', app: 'メッセージ', title: 'NK EXPRESS', body: 'お荷物をお届けしましたが、ご不在のため持ち帰りました。再配達のお手続きはこちら ▶ <span class="link">https://nk-express-jp.top/re…</span>' };
+const CODE_BANNER = { icon: '🏦', color: '#2C6BE0', app: 'メッセージ', title: 'みらい銀行', body: '【認証コード】<span class="code">483920</span><br>このコードは絶対に他人に教えないでください。' };
+const BANK_BANNER = { icon: '🏦', color: '#2C6BE0', app: 'みらい銀行', title: '¥298,000 の送金が完了しました', body: '残高 <span style="color:#FF6B6B;font-size:46px">¥0</span>' };
+
+// ===================== ショット =====================
+const SHOTS = [
+  { name: 'hook', start: 0, end: 3.4 }, { name: 's1', start: 3.4, end: 12.5 }, { name: 's2', start: 12.5, end: 22.5 },
+  { name: 's3', start: 22.5, end: 33.5 }, { name: 's4', start: 33.5, end: 52.5 }, { name: 's5', start: 52.5, end: 63.5 },
+  { name: 's6', start: 63.5, end: 72.5 }, { name: 'end', start: 72.5, end: 78.0 },
+];
+window.DURATION = 78.0;
+
+const HIDE_IDS = ['phone', 'banner', 'pauseDim', 'pauseIcon', 'dgTitle', 'diagram', 'dgCap', 'p1', 'p2', 'hook', 'title', 'urlCard', 'checklist', 'dayCard', 'end', 'tl1', 'tl2', 'scamRoom', 'paperSlip', 'phoneGlow',
+  'b_yu1', 'b_rin1', 'b_yu2', 'b_yu3', 'b_rin2', 'b_rin3', 'b_yu4', 'b_yu5'];
+function resetAll() {
+  HIDE_IDS.forEach(id => show($(id), false));
+  ['cursor', 'ripple'].forEach(id => { const e = $(id); if (e) show(e, false); });
+  $('cam').style.transform = ''; $('cam').style.filter = ''; $('stage').style.transform = '';
+  $('room').style.display = ''; $('rin').style.display = ''; $('yu').style.display = ''; $('sofaFront').style.display = ''; $('ctable').style.display = '';
+  $('room').classList.add('night');
+}
+// 部屋の標準配置 (ユウ着席・リン不在)
+function yuSit(pose, face, opts, T, dx = 0) {
+  const bob = Math.sin(T * 2 * Math.PI * .5) * 3;
+  setChara($('yu'), 'yu', Object.assign({}, pose, { bodyY: (pose.bodyY || 0) + bob }), face, Object.assign({ blink: blinkAt(T, .3) }, opts), YU.x + dx, YU.yTopSit);
+}
+function rinStand(pose, face, opts, T, x = RIN.x, flip = true) {
+  const bob = Math.sin(T * 2 * Math.PI * .45) * 2;
+  setChara($('rin'), 'rin', Object.assign({}, pose, { bodyY: (pose.bodyY || 0) + bob }), face, Object.assign({ blink: blinkAt(T, 1.1) }, opts), x, RIN.yTop, 1.1, flip);
+}
+function glowAt(x, y, on = true) { const g = $('phoneGlow'); show(g, on); place(g, x - 130, y - 130); }
+
+// ---- フック ----
+function shotHook(t) {
+  show($('hook'), true); $('room').style.display = 'none'; $('yu').style.display = 'none'; $('rin').style.display = 'none'; $('sofaFront').style.display = 'none'; $('ctable').style.display = 'none';
+  const card = $('hookCard');
+  if (t < 1.5) { pop(card, t, .3, .4); shake(t, .3, .8, 22); card.style.transform = `scale(var(--s))`; }
+  else if (t < 2.3) {
+    show(card, true); const u = clamp((t - 1.5) / .8, 0, 1);
+    card.style.setProperty('--s', (1 - u * .9).toFixed(3)); card.style.opacity = 1 - u; card.style.transform = `scale(var(--s)) rotate(${(-u * 25).toFixed(1)}deg) translateY(${(u * 300).toFixed(0)}px)`;
+    show($('scan'), true); $('scan').style.opacity = .6 + Math.sin(t * 60) * .3; $('scan').style.backgroundPosition = `0 ${(t * 900) % 60}px`;
+    pop($('rewindTxt'), t, 1.55, .3); $('rewindTxt').style.transform = `translate(-50%,-50%) scale(var(--s)) translateX(${Math.sin(t * 80) * 6}px)`;
+  } else {
+    show(card, false); show($('scan'), false); show($('rewindTxt'), false);
+    show($('title'), true); pop($('t1'), t, 2.3, .35); pop($('t2'), t, 2.55, .45); pop($('t3'), t, 2.9, .35);
+  }
+}
+// ---- 1: 通知 ----
+function shot1(t, T) {
+  const talk = t >= 2.0 && t < 3.6;
+  const pose = t < 1.6 ? P.phone : poseSeq(t, [[0, P.phone], [1.6, Object.assign({}, P.phone, { head: -4, headY: -2 })]], .35);
+  const face = t < 1.6 ? F('focus') : F('smile', { lookX: 0, lookY: 0 });
+  yuSit(pose, face, { held: 'phone', talk, talkOpen: talkOpen(T) }, T);
+  glowAt(YU.x + 24, 1040, t < 5.2);
+  banner(t, .6, 4.6, SMS_BANNER);
+  const b = $('b_yu1'); place(b, 470, 640); pop(b, t, 2.0, .35, 4.5);
+  if (t >= 4.6 && t < 5.4) cam(tw(t, 4.6, 5.4, 1, 2.6, E.inOutCubic), YU.x + 40, 1040);
+  if (t >= 5.2) {
+    phone(SMS_HTML(t >= 7.4), 'sms' + (t >= 7.4 ? 'h' : ''));
+    const p = $('phone'); p.style.transform = `scale(${tw(t, 5.2, 5.7, .6, 1, E.outBack)})`; p.style.opacity = tw(t, 5.2, 5.5, 0, 1, E.lin);
+    cursorAt(560, 700, t, 6.4, 7.4, 9.2);
+    if (t >= 7.7) { let lb = $('phoneContent').querySelector('.loadbar'); if (!lb) { lb = document.createElement('div'); lb.className = 'loadbar'; $('phoneContent').appendChild(lb); } lb.style.width = tw(t, 7.7, 9.1, 0, 868, E.inOutCubic) + 'px'; }
+  }
+}
+// ---- 2: 偽サイト ----
+function shot2(t, T) {
+  const inRoom = t >= 6.0;
+  if (!inRoom) {
+    const tel = typed('090 1234 5678', t, .8, 6), bd = typed('1998 / 04 / 12', t, 3.4, 8);
+    const focus = t < 3.3 ? 1 : (t < 5.3 ? 2 : 0);
+    const pressed = t >= 5.4 && t < 5.7;
+    phone(SITE1_HTML(tel, bd, focus, pressed, t >= 5.8), `s1|${tel}|${bd}|${focus}|${pressed}|${t >= 5.8}`);
+    $('phone').style.transform = ''; $('phone').style.opacity = 1;
+    cursorAt(540, 1380, t, 5.0, 5.4, 6.0);
+    yuSit(P.phone2, F('focus'), { held: 'phone' }, T); // 背景用 (見えない)
+  } else {
+    const lt = t - 6.0;
+    yuSit(P.phone2, F('focus', { lookY: 8 }), { held: 'phone', talk: t >= 9.0 && t < 10, talkOpen: talkOpen(T) }, T);
+    glowAt(YU.x + 24, 1040, true);
+    // リンが右から歩いてくる
+    const walkDur = 1.7;
+    if (lt < walkDur) { const ph = lt * 2.2; rinStand(RIG.walk(ph), F('neutral'), {}, T, tw(lt, 0, walkDur, 1180, RIN.x, E.lin), true); }
+    else rinStand(poseSeq(lt, [[walkDur, P.stand], [walkDur + .1, P.handsHip]], .5), F(lt >= 1.8 ? 'think' : 'neutral', { lookX: -6, lookY: 4 }), { talk: lt >= 1.8 && lt < 2.9, talkOpen: talkOpen(T) }, T, RIN.x, true);
+    const b1 = $('b_rin1'); place(b1, 700, 640); pop(b1, t, 7.8, .35, 9.0);
+    const b2 = $('b_yu2'); place(b2, 470, 640); pop(b2, t, 9.0, .35);
+  }
+}
+// ---- 3: 認証コード → 詐欺師 → 残高0 ----
+function shot3(t, T) {
+  if (t < 7.0) {
+    const code = typed('483920', t, 2.8, 3.4);
+    const pressed = t >= 5.0 && t < 5.3;
+    if (t < 5.2) phone(SITE2_HTML(code, t >= 2.6, pressed), `s2|${code}|${t >= 2.6}|${pressed}`); else { phone(PROC_HTML, 'proc'); spinner(t); }
+    $('phone').style.transform = ''; $('phone').style.opacity = 1;
+    banner(t, .4, 2.6, CODE_BANNER);
+    cursorAt(540, 1130, t, 4.6, 5.0, 5.6);
+    yuSit(P.phone2, F('focus'), { held: 'phone' }, T);
+  } else if (t < 9.8) {
+    const lt = t - 7.0;
+    $('room').style.display = 'none'; $('yu').style.display = 'none'; $('rin').style.display = 'none'; $('sofaFront').style.display = 'none'; $('ctable').style.display = 'none';
+    show($('scamRoom'), true);
+    setChara($('scam'), 'scammer', Object.assign({}, P.phone2, { head: 12, bodyY: Math.sin(T * 3) * 2 }), F('neutral'), {}, 540, 380, 1.25);
+    const lines = [
+      [0.0, '<span class="dim">$ relay --target mirai-bank</span>'],
+      [0.4, '<span class="dim">> phone:</span> 090-1234-5678'],
+      [0.8, '<span class="dim">> otp  :</span> <span class="y">483920</span>'],
+      [1.3, '<span class="ok">✓ 認証成功  ログイン完了</span>'],
+      [1.7, '<span class="dim">> 送金先:</span> ****8821'],
+      [2.0, '<span class="dim">> 金額  :</span> <span class="r">¥298,000</span>'],
+    ];
+    let html = lines.filter(([ts]) => lt >= ts).map(([, s]) => s).join('<br>');
+    if (lt >= 2.0) html += `<br><span class="exec ${lt >= 2.4 ? 'on' : ''}">実行</span>`;
+    else html += ' <span class="caret" style="opacity:' + (Math.sin(lt * 12) > 0 ? 1 : 0) + '"></span>';
+    $('monitor').innerHTML = html;
+    if (lt >= 2.4) shake(t, 9.4, 9.7, 10);
+  } else {
+    const lt = t - 9.8;
+    const pose = poseSeq(lt, [[0, P.phone2], [0.25, P.shock]], .45);
+    yuSit(pose, lt < .25 ? F('focus') : F('shock'), { held: lt < .25 ? 'phone' : null }, T);
+    rinStand(P.handsHip, F('think', { lookX: -6, lookY: 4 }), {}, T, RIN.x, true);
+    glowAt(YU.x + 24, 1040, lt < .25);
+    banner(t, 9.8, 13.6, BANK_BANNER);
+    shake(t, 9.85, 10.3, 14);
+    const b = $('b_yu3'); place(b, 470, 640); pop(b, t, 10.6, .3);
+    if (lt >= .25) cam(tw(lt, .25, 1.6, 1, 1.15, E.outCubic), YU.x, 900);
+  }
+}
+// ---- 4: 一時停止 → 図解 ----
+function shot4(t, T) {
+  yuSit(P.shock, F('shock'), {}, 33.5); rinStand(P.handsHip, F('think', { lookX: -6, lookY: 4 }), {}, 33.5, RIN.x, true);
+  cam(1.15, YU.x, 900);
+  $('cam').style.filter = `grayscale(${tw(t, 0, .4, 0, 1, E.lin)})`;
+  show($('pauseDim'), true); $('pauseDim').style.opacity = tw(t, 0, .5, 0, 1, E.lin);
+  pop($('pauseIcon'), t, .1, .3, 1.6);
+  pop($('dgTitle'), t, .5, .4);
+  if (t >= 1.5) {
+    show($('diagram'), true);
+    pop($('nYu'), t, 1.8, .4); pop($('nSc'), t, 2.2, .4); pop($('nBk'), t, 2.6, .4);
+    const draw = (id, t0, dur) => { const p = $(id); const L = p.getTotalLength(); if (t < t0) { p.style.display = 'none'; return; } p.style.display = ''; const u = clamp((t - t0) / dur, 0, 1); p.style.strokeDasharray = p.id === 'a2b' ? '26 18' : `${L} ${L}`; if (p.id !== 'a2b') p.style.strokeDashoffset = (L * (1 - u)).toFixed(1); else p.style.opacity = u; };
+    draw('a1', 3.4, .7); pop($('l1'), t, 3.9, .3);
+    draw('a2', 7.8, .8); pop($('l2'), t, 8.4, .3);
+    draw('a2b', 9.6, .8); pop($('l2b'), t, 10.2, .3);
+    draw('a3', 12.8, .6); pop($('l3'), t, 13.2, .3);
+    draw('a3b', 14.2, .7); pop($('l3b'), t, 14.7, .3);
+    const zb = $('zeroBadge'); pop(zb, t, 15.4, .3); if (t >= 15.4) $('nBk').style.transform = `translate(-50%,-50%) scale(var(--s)) translate(${Math.sin(t * 80) * tw(t, 15.4, 16.2, 10, 0)}px,0)`;
+    const cap = $('dgCap'); show(cap, t >= 3.2 && t < 16.8);
+    if (t < 7.5) cap.innerHTML = '<span class="step">1</span>偽SMSから偽サイトへ。<br><b>電話番号と生年月日</b>を入力させる';
+    else if (t < 12.5) cap.innerHTML = '<span class="step">2</span>詐欺師が<b>本物の銀行</b>にログインを試みる。<br>銀行は"本人"のスマホに認証コードを送る';
+    else cap.innerHTML = '<span class="step">3</span>本人がそのコードを<b>偽サイトに入力</b>。<br>詐欺師に転送され、送金が成立する';
+    cap.style.opacity = t < 3.2 ? 0 : (t < 3.6 ? (t - 3.2) / .4 : 1);
+  }
+  if (t >= 16.8) {
+    $('diagram').style.opacity = tw(t, 16.8, 17.3, 1, .12, E.lin); $('dgCap').style.opacity = tw(t, 16.8, 17.2, 1, 0, E.lin);
+    const p1 = $('p1'); p1.style.top = '780px'; pop(p1, t, 17.0, .4);
+    const p2 = $('p2'); p2.style.top = '920px'; pop(p2, t, 17.8, .45);
+  } else $('diagram').style.opacity = 1;
+}
+// ---- 5: URL の答え合わせ ----
+function shot5(t, T) {
+  $('cam').style.filter = `grayscale(${tw(t, 0, .5, 1, 0, E.lin)})`;
+  cam(tw(t, 0, .8, 1.15, 1, E.inOutCubic), YU.x, 900);
+  const yuPose = poseSeq(t, [[0, P.slump], [7.6, P.facepalm]], .45);
+  yuSit(yuPose, t < 7.6 ? F('sad') : F('sad', { eyes: 'closed' }), {}, T);
+  const rinPose = poseSeq(t, [[0, P.handsHip], [0.3, P.point], [5.2, P.handsHip]], .45);
+  rinStand(rinPose, t < 5.2 ? F('angry', { lookX: -6, lookY: 6 }) : F('neutral', { lookX: -6, lookY: 4 }), { talk: (t >= .5 && t < 1.8) || (t >= 5.5 && t < 7.3), talkOpen: talkOpen(T) }, T, RIN.x, true);
+  const b1 = $('b_rin2'); place(b1, 700, 640); pop(b1, t, .5, .35, 2.2);
+  pop($('urlCard'), t, 1.6, .45, 10.6);
+  const b2 = $('b_rin3'); place(b2, 700, 640); pop(b2, t, 5.5, .35, 7.8);
+  const tl = $('tl1'); tl.style.top = '1160px'; pop(tl, t, 8.4, .3);
+}
+// ---- 6: 対処 → 翌日 ----
+function shot6(t, T) {
+  if (t < 5.0) {
+    const yuPose = poseSeq(t, [[0, P.facepalm], [0.05, P.call]], .45);
+    yuSit(yuPose, F('panic'), { held: t >= .3 ? 'phoneCall' : null, talk: t >= .4 && t < 2.2, talkOpen: talkOpen(T) }, T);
+    rinStand(P.armsCross, F('neutral', { lookX: -6, lookY: 4 }), {}, T, RIN.x, true);
+    const b = $('b_yu4'); place(b, 470, 640); pop(b, t, .4, .35, 2.4);
+    pop($('checklist'), t, 1.6, .45);
+    ['c1', 'c2', 'c3'].forEach((id, i) => $(id).querySelector('.bx').classList.toggle('on', t >= 2.3 + i * .5));
+    const tl = $('tl2'); tl.style.top = '1160px'; pop(tl, t, 3.6, .3);
+  } else if (t < 5.6) {
+    show($('dayCard'), true); $('dayCard').style.opacity = t < 5.15 ? tw(t, 5.0, 5.15, 0, 1, E.lin) : 1;
+    yuSit(P.stand, F('neutral'), {}, T); rinStand(P.stand, F('neutral'), {}, T);
+  } else {
+    const lt = t - 5.6;
+    $('room').classList.remove('night');
+    // 紙の不在票がドアの下から
+    const ps = $('paperSlip'); if (lt >= .6) { show(ps, true); ps.style.left = tw(lt, .6, 1.2, 930, 800, E.outCubic) + 'px'; ps.style.transform = `rotate(${tw(lt, .6, 1.2, 0, -14)}deg)`; }
+    if (lt >= 1.6) show(ps, false);
+    const yuPose = lt < 1.6 ? P.stand : poseSeq(lt, [[1.6, P.stand], [1.65, P.holdPaper]], .5);
+    const yuX = tw(lt, .2, 1.4, YU.x, 700, E.inOutCubic);
+    // 立ち上がって歩く (ソファの前)
+    const walking = lt >= .2 && lt < 1.4;
+    setChara($('yu'), 'yu', walking ? RIG.walk(lt * 2.4) : Object.assign({}, yuPose, { bodyY: Math.sin(T * 3) * 2 }), lt < 1.6 ? F('neutral') : F('dead'), { blink: blinkAt(T, .3), held: lt >= 1.7 ? 'paper' : null, talk: lt >= 1.9 && lt < 3.6, talkOpen: talkOpen(T) }, yuX, YU.yTopStand + 20, 1.1, false);
+    $('sofaFront').style.display = 'none';
+    rinStand(P.handsHip, lt < 1.9 ? F('neutral', { lookX: 6 }) : F('smug', { lookX: 6 }), {}, T, 330, false);
+    const b = $('b_yu5'); place(b, 720, 640); pop(b, t, 7.0, .35);
+  }
+}
+// ---- エンド ----
+function shotEnd(t) {
+  show($('end'), true); $('room').style.display = 'none'; $('yu').style.display = 'none'; $('rin').style.display = 'none'; $('sofaFront').style.display = 'none'; $('ctable').style.display = 'none';
+  pop($('e0'), t, .2, .35); pop($('e1'), t, .7, .4); pop($('e2'), t, 1.3, .4); pop($('e3'), t, 1.9, .4);
+  const e4 = $('e4'); if (pop(e4, t, 3.0, .4)) e4.style.opacity = .75 + .25 * Math.sin(t * 5);
+}
+
+window.seek = function (T) {
+  T = clamp(T, 0, window.DURATION - 1e-4);
+  resetAll();
+  const shot = SHOTS.find(s => T >= s.start && T < s.end) || SHOTS[SHOTS.length - 1];
+  const t = T - shot.start;
+  // 既定: リンは非表示
+  $('rin').style.display = 'none';
+  switch (shot.name) {
+    case 'hook': shotHook(t); break;
+    case 's1': shot1(t, T); break;
+    case 's2': $('rin').style.display = t >= 6.0 ? '' : 'none'; shot2(t, T); break;
+    case 's3': $('rin').style.display = t >= 9.8 ? '' : 'none'; shot3(t, T); break;
+    case 's4': $('rin').style.display = ''; shot4(t, T); break;
+    case 's5': $('rin').style.display = ''; shot5(t, T); break;
+    case 's6': $('rin').style.display = ''; shot6(t, T); break;
+    case 'end': shotEnd(t); break;
+  }
+  drawSubs(T);
+  return shot.name;
+};
+(function () {
+  const q = new URLSearchParams(location.search);
+  if (q.has('play')) { const t0 = performance.now(); (function loop() { window.seek(((performance.now() - t0) / 1000) % window.DURATION); requestAnimationFrame(loop); })(); }
+  else window.seek(parseFloat(q.get('t') || '0'));
+})();
+</script>
+</body>
+</html>

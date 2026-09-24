@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><title>SMS詐欺編 音声 (Web Audio)</title></head>
+<body>
+<script src="../../lib/sfx.js"></script>
+<script>
+// 「不在通知SMSを押した3分後」 BGM + SE。時刻は scene.html の SHOTS/SUBS と同期。
+const DURATION = 78.0, SR = 48000;
+window.renderAudio = async function (mix) {
+  const MIX = Object.assign({ bgm: 1, se: 1 }, mix || {});
+  const ctx = new OfflineAudioContext(2, Math.ceil(DURATION * SR), SR);
+  const master = ctx.createGain();
+  const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.knee.value = 12; comp.ratio.value = 4; comp.attack.value = .004; comp.release.value = .18;
+  master.connect(comp); comp.connect(ctx.destination);
+  const verb = ctx.createConvolver(); verb.buffer = SFX.impulse(ctx, 1.6, 3.0);
+  const verbGain = ctx.createGain(); verbGain.gain.value = .3; verb.connect(verbGain); verbGain.connect(master);
+
+  // ---------------- BGM ----------------
+  const bgm = ctx.createGain(); bgm.gain.value = MIX.bgm; bgm.connect(master);
+  const send = ctx.createGain(); send.gain.value = .1; bgm.connect(send); send.connect(verb);
+  // 日常 (lo-fi、明るめ): 3.4〜22.5
+  const lofiA = SFX.bgmLofi(ctx, bgm, { from: 2.3, to: 22.8, bpm: 92, prog: [[60, 64, 67, 71], [57, 60, 64, 67], [65, 69, 72, 76], [55, 59, 62, 67]], roots: [48, 45, 41, 43], vel: .5 });
+  lofiA.gain.setValueAtTime(0, 2.3); lofiA.gain.linearRampToValueAtTime(.5, 2.8); lofiA.gain.setValueAtTime(.5, 21.8); lofiA.gain.linearRampToValueAtTime(0, 22.8);
+  // 緊張 (認証コード〜送金): 22.5〜32.4、だんだん強く
+  const tense = SFX.bgmTense(ctx, bgm, { from: 22.5, to: 32.4, bpm: 100, root: 45, vel: .55 });
+  // 一時停止〜図解: 静かなパッド 33.5〜52.5
+  const pad = SFX.bgmPad(ctx, bgm, { from: 33.8, to: 52.6, chords: [[57, 60, 64, 67], [55, 59, 62, 67], [53, 57, 60, 64], [55, 59, 62, 67]], barSec: 3.2, vel: .75 });
+  pad.gain.setValueAtTime(0, 33.8); pad.gain.linearRampToValueAtTime(.75, 34.6); pad.gain.setValueAtTime(.75, 52.0); pad.gain.linearRampToValueAtTime(0, 52.6);
+  // 日常に戻る: 52.5〜68.5 (少し落ち着いた進行) / 翌日〜エンド: 69〜78 (明るい)
+  const lofiB = SFX.bgmLofi(ctx, bgm, { from: 52.5, to: 68.6, bpm: 92, prog: [[57, 60, 64, 67], [53, 57, 60, 64], [60, 64, 67, 71], [55, 59, 62, 67]], roots: [45, 41, 48, 43], vel: .42 });
+  lofiB.gain.setValueAtTime(0, 52.5); lofiB.gain.linearRampToValueAtTime(.42, 53.2); lofiB.gain.setValueAtTime(.42, 68.0); lofiB.gain.linearRampToValueAtTime(0, 68.6);
+  const lofiC = SFX.bgmLofi(ctx, bgm, { from: 69.1, to: 78.0, bpm: 92, prog: [[60, 64, 67, 71], [65, 69, 72, 76], [57, 60, 64, 67], [55, 59, 62, 67]], roots: [48, 41, 45, 43], vel: .5 });
+  lofiC.gain.setValueAtTime(0, 69.1); lofiC.gain.linearRampToValueAtTime(.5, 69.6); lofiC.gain.setValueAtTime(.5, 76.6); lofiC.gain.linearRampToValueAtTime(0, 78.0);
+
+  // ---------------- SE ----------------
+  const se = ctx.createGain(); se.gain.value = MIX.se; se.connect(master);
+  const seSend = ctx.createGain(); seSend.gain.value = .35; se.connect(seSend); seSend.connect(verb);
+  const K = SFX.kit(ctx, se, verb);
+  const keys = (t0, n, step) => { for (let i = 0; i < n; i++) K.key(t0 + i * step + Math.random() * .015); };
+
+  // フック
+  K.alert(0.3); K.don(0.32, .7, 50);
+  K.rewind(1.5, .8); K.click(2.3); K.don(2.32, .9, 60); K.don(2.58, 1.0, 46); K.pi(2.92, 1600, .2, .05);
+  // 1: 通知 → タップ
+  K.piron(4.0); K.pon(5.4, 620, .4); K.whoosh(8.0, .6, .35, true); K.tap(10.8); K.tick(11.2, .1); K.tick(11.6, .1); K.tick(12.0, .1);
+  // 2: 偽サイト入力
+  K.whoosh(12.5, .3, .3, false);
+  keys(13.3, 11, .2); keys(15.9, 10, .16); K.tap(17.9); K.pon(18.3, 900, .3);
+  K.whoosh(18.5, .35, .3, false);
+  [18.7, 19.05, 19.4, 19.75, 20.1].forEach(t => K.koton(t, .3, 150)); // 足音
+  K.pon(20.3, 700, .4); K.pon(21.5, 620, .4);
+  // 3: 認証コード → 詐欺師 → 残高0
+  K.whoosh(22.5, .3, .3, false); K.piron(22.9, .5);
+  keys(25.3, 6, .3); K.tap(27.5); for (let t = 27.7; t < 29.4; t += .25) K.tick(t, .14);
+  K.whoosh(29.5, .5, .4, true); K.don(29.55, .6, 40);
+  [29.5, 29.9, 30.3].forEach(t => keys(t, 6, .05)); K.success(30.8, .35); K.pi(31.2, 900, .18); K.pi(31.5, 900, .18);
+  K.click(31.9); K.coins(31.95, .4); K.don(32.0, .8, 44);
+  K.alert(32.3, .6); K.buzz(32.6, .5); K.heart(33.0, .5);
+  // 4: 一時停止 → 図解
+  K.click(33.5, .5); K.whoosh(33.55, .5, .3, false);
+  K.pon(34.0, 520, .35);
+  K.node(35.3); K.node(35.7); K.node(36.1);
+  K.arrow(36.9); K.pon(37.4, 800, .3);
+  K.arrow(41.3); K.pon(41.9, 800, .3); K.arrow(43.1); K.pon(43.7, 1000, .3);
+  K.arrow(46.3); K.pon(46.7, 600, .35); K.arrow(47.7); K.don(48.4, .7, 50); K.buzz(48.9, .35);
+  K.don(50.5, .9, 48); K.shimmer(50.6); K.don(51.3, .8, 44); K.shimmer(51.4, .1, 2.6);
+  // 5: URL
+  K.whoosh(52.5, .5, .3, true); K.pon(53.0, 700, .4); K.stamp(54.1, .6); K.stamp(54.6, .5); K.pon(58.0, 700, .4);
+  K.pechi(60.2); K.stamp(60.9, .6);
+  // 6: 対処 → 翌日
+  K.pon(63.9, 620, .4); K.pon(65.1, 800, .35); K.check(65.8); K.check(66.3); K.check(66.8); K.stamp(67.1, .5);
+  K.don(68.5, .6, 60); K.whoosh(69.1, .5, .3, true);
+  K.doorbell(69.3); K.paper(70.2); [69.8, 70.15, 70.5].forEach(t => K.koton(t, .3, 150)); K.pon(70.5, 560, .4); K.kiran(71.2, .25);
+  // エンド
+  K.pon(72.7, 760, .4); K.pon(73.2, 660, .4); K.pon(73.8, 720, .4); K.pon(74.4, 780, .4); K.stab(75.5, [60, 64, 67, 72], .15);
+
+  const buf = await ctx.startRendering();
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  let peak = 0; for (let i = 0; i < L.length; i++) peak = Math.max(peak, Math.abs(L[i]), Math.abs(R[i]));
+  const norm = peak > 0 ? Math.pow(10, -1 / 20) / peak : 1;
+  const pcm = new Int16Array(L.length * 2);
+  for (let i = 0; i < L.length; i++) { pcm[2 * i] = Math.max(-32768, Math.min(32767, Math.round(L[i] * norm * 32767))); pcm[2 * i + 1] = Math.max(-32768, Math.min(32767, Math.round(R[i] * norm * 32767))); }
+  const bytes = new Uint8Array(pcm.buffer); let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return { sampleRate: SR, channels: 2, peakBefore: peak, pcm16: btoa(bin) };
+};
+</script>
+</body>
+</html>
