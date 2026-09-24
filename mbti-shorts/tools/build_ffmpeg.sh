@@ -18,13 +18,13 @@ if [ ! -x "$B/prefix/bin/ffmpeg" ]; then
   ( cd FFmpeg && PKG_CONFIG_PATH="$B/prefix/lib/pkgconfig" ./configure --prefix="$B/prefix" \
     --disable-everything --disable-autodetect --disable-x86asm --disable-doc --disable-debug --disable-network \
     --disable-ffplay --disable-ffprobe --enable-ffmpeg --enable-gpl --enable-libx264 --enable-zlib --enable-static --disable-shared \
-    --enable-encoder=libx264,aac,png,pcm_s16le,mjpeg \
-    --enable-decoder=png,pcm_s16le,pcm_f32le,h264,aac,mjpeg \
-    --enable-demuxer=image2,wav,mov,concat \
-    --enable-muxer=mp4,mov,wav,image2,null \
+    --enable-encoder=libx264,aac,png,pcm_s16le,mjpeg,rawvideo,wrapped_avframe \
+    --enable-decoder=png,pcm_s16le,pcm_f32le,h264,aac,mjpeg,rawvideo \
+    --enable-demuxer=image2,wav,mov,concat,rawvideo \
+    --enable-muxer=mp4,mov,wav,image2,null,rawvideo \
     --enable-parser=h264,aac,png \
     --enable-protocol=file,pipe \
-    --enable-filter=scale,format,aresample,aformat,anull,null,volume,apad,atrim,trim,fps,setpts,asetpts,concat,adelay,amix,loudnorm,pad,crop \
+    --enable-filter=scale,format,aresample,aformat,anull,null,volume,apad,atrim,trim,fps,setpts,asetpts,concat,adelay,amix,loudnorm,pad,crop,ssim,psnr,ebur128,volumedetect,showinfo,split \
     --extra-cflags="-I$B/prefix/include" --extra-ldflags="-L$B/prefix/lib" --pkg-config-flags="--static" \
     && make -j"$(nproc)" && mkdir -p "$B/prefix/bin" && cp ffmpeg "$B/prefix/bin/ffmpeg" ) > "$B/ffmpeg.log" 2>&1
 fi

@@ -17,9 +17,13 @@ VIDEO=output/$TYPE/_video_h264.mp4
 OUT=output/$TYPE/${TYPE}_short.mp4
 
 if [ ! -f "$VIDEO" ] || [ "$FORCE_VIDEO" = 1 ]; then
-  echo "== 1) video encode (libx264)"
-  "$FFMPEG" -hide_banner -y -loglevel warning -stats \
-    -framerate "$FPS" -i "$FRAMES/frame_%05d.png" \
+  echo "== 1) video encode (png2yuv.js -> libx264)"
+  # 色変換 (RGB→YUV420p BT.709) は Chromium 側で行い、ffmpeg の swscale を通さない。
+  # (アセンブラ無しでビルドした ffmpeg の swscale が RGB→YUV で色を壊すため)
+  set -- "$FRAMES"/frame_*.png; FIRST=$1
+  read -r W H < <(python3 -c "import struct,sys;d=open(sys.argv[1],'rb').read(24);print(*struct.unpack('>II',d[16:24]))" "$FIRST")
+  node src/png2yuv.js --frames "$FRAMES" | "$FFMPEG" -hide_banner -y -loglevel warning -stats \
+    -f rawvideo -pix_fmt yuv420p -s "${W}x${H}" -framerate "$FPS" -i /dev/stdin \
     -c:v libx264 -preset medium -crf 18 -profile:v high -level 4.0 -pix_fmt yuv420p \
     -x264-params "keyint=48:min-keyint=24:scenecut=0:colorprim=bt709:transfer=bt709:colormatrix=bt709:range=tv" \
     -color_range tv -colorspace bt709 -color_primaries bt709 -color_trc bt709 \

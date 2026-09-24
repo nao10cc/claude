@@ -21,13 +21,17 @@ scene.html (台本=タイムライン, キャラはSVG)          audio.html (BGM
 render_frames.js  Chromium で 1コマずつ PNG (1152枚)   render_audio.js  Chromium で 48kHz WAV に書き出し
    └──────────────────────┬─────────────────────────────┘
                           ▼
-tools/build_final.sh   ffmpeg: 連番PNG → H.264 (High@4.0, yuv420p) / WAV → AAC-LC → faststart MP4
+tools/build_final.sh   png2yuv.js で RGB→YUV420p(BT.709) 変換 → ffmpeg/libx264 で H.264 (High@4.0)
+                       WAV → AAC-LC (loudnorm -14 LUFS) → faststart MP4
 ```
 
 - 映像・音声ともに外部素材ゼロ。BGM は lo-fi ヒップホップ (84BPM, Am7-Dm7-G7-Cmaj7)、決めゼリフ以降はパッドに切替。
   SE は吹き出しの「ポン」、スタンプ、ホワイトボード/手帳の移動、置く音、ペン、チェック、眼鏡の「キラン」、決めゼリフの「ドン」など約60個。
 - ffmpeg は apt/pip が使えない環境のため `tools/build_ffmpeg.sh` で GitHub のソースから最小構成をビルドしている (x264 + ネイティブ AAC、1〜2分)。
   手元の PC では `brew install ffmpeg` / `apt install ffmpeg` の ffmpeg でそのまま動く。
+- 色変換 (RGB→YUV420p) は `src/png2yuv.js` が Chromium 側で行い、生 yuv420p を ffmpeg にパイプしている。
+  アセンブラ無しでビルドした ffmpeg の swscale が RGB→YUV で色を壊した (全面マゼンタ) ため、swscale を経由しない構成にした。
+  変換結果は BT.709 の期待値と数値で照合済み (`Y/U/V` 誤差 <3)。
 - 旧パイプライン (Chromium 内蔵 VP9 + 自作 mp4 muxer: `encode_mp4.js` / `mp4mux.js` / `verify_mp4.js`) は ffmpeg が無い環境向けの予備として残している。
 
 2026年のAIショートアニメ制作で主流の「静止画（コマ）を1枚ずつ生成し、連番を動画に連結する」フローをそのままコード化している。
